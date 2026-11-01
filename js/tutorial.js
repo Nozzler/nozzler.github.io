@@ -152,7 +152,7 @@ function openChapter(index){
 }
 const TABS={
  Goal:()=>`<h3>The goal</h3><p>Capture the enemy Core. There is no check or checkmate: you can move into danger, and the game ends the moment a Core is taken. A side with no legal moves loses.</p>
-<h3>Taking turns</h3><p>Ember (amber, bottom) moves first, then Tide (teal, top). Click one of your pieces. Gold dots show empty hexes it can move to, red rings show captures. Click a target to move, or click elsewhere to deselect. The last move stays outlined.</p>
+<h3>Taking turns</h3><p>Ember (amber, bottom) moves first, then Tide (teal, top). Click one of your pieces. Gold dots show moves, red rings show captures. Click a target to move, or click elsewhere to deselect. In Twin Core mode, each side has two Cores and must capture both enemy Cores to win.</p>
 <h3>The board</h3><p>Hexes come in three repeating shades. They matter: Seers never leave the shade they start on.</p>
 <h3>Wild cards</h3><p>Before the game each player chooses wild cards from six extra pieces. They start on the open hexes in front of your army, so you can have more piece types than your opponent expects.</p>
 <h3>Fair opening</h3><p>An unmoved Core cannot be captured by a Seer. Move the Core once and Seers can target it. An unmoved Seer also cannot capture the opposing starting Seer. Other pieces may capture either piece normally.</p>
@@ -205,7 +205,7 @@ tc.onclick=e=>{let b;
  else if(b=e.target.closest("[data-a]"))trainAct(b.dataset.a);
  else if(b=e.target.closest("[data-h]")){const[q,r]=b.dataset.h.split(",").map(Number);trainClick(q,r)}};
 tc.onchange=e=>{const b=e.target.closest("[data-chapter]");if(b)openChapter(+b.value)};
-tb.onclick=()=>{showTab("Goal");tut.className=""};tx.onclick=()=>tut.className="hide";
+tb.onclick=()=>{showTab("Goal");tut.className=""};tx.onclick=()=>{tut.className="hide";window.updateHomeTraining?.()};
  window.showTab=showTab;
  return true;
 }).catch(error=>{

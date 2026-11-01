@@ -23,12 +23,37 @@
   <div class="home-actions">
    <button id="start-guided" class="home-primary"><span>Play with Hex</span><small>A full game with a friendly coach</small></button>
    <button id="start-ai"><span>Play vs computer</span><small>Practice at your own pace</small></button>
-   <button id="start-local"><span>Two players</span><small>Share the board on one screen</small></button>
+    <button id="start-local"><span id="start-local-label">Two players</span><small id="start-local-description">Share the board on one screen</small></button>
    <button id="start-online"><span>Play online</span><small>Meet a friend in a lobby</small></button>
   </div>
   <div class="home-footer"><button id="home-learn" class="text-button">Learn the rules &amp; practice drills</button></div>
  </div>
  <div class="home-side"><div class="mascot big-mascot"><span>✦</span></div><h3>Meet Hex</h3><p>Your tiny tactics guide. Hex points out threats and shares a tip when you need one.</p> <div class="home-note"><b>New to Hexfall?</b><br>Skirmish is a shorter game with fewer pieces. Hex can point out threats while you play.</div></div>
+ <section class="home-continue" aria-label="Training progress">
+  <div class="home-continue-copy"><span class="home-continue-label">TACTICS PATH</span><b id="home-training-title">Start your first lesson</b><span id="home-training-detail">0 of 1,000 lessons complete</span><div class="home-training-track"><span id="home-training-fill"></span></div></div>
+    <button id="home-training-action" class="home-training-action"><span id="home-training-label">Open training</span><span aria-hidden="true">→</span></button>
+ </section>
+</section>
+<section id="online-screen" class="online-screen hide">
+ <header class="online-header">
+  <button id="online-back" class="text-button">← Menu</button>
+  <div><p class="online-kicker">HEXfall · ONLINE</p><h2>Play a friend</h2><p>Join the same room to start a match.</p></div>
+ </header>
+ <div class="online-layout">
+  <section class="online-lobby-main">
+   <div class="online-room-heading"><div><span class="side-label">ROOM</span><b id="lobby-board-label">Skirmish</b></div><span id="online-connection" class="connection-state">Not connected</span></div>
+   <label for="uname">Your name</label><input id="uname" placeholder="Name" maxlength="16" autocomplete="nickname">
+   <label for="lobid">Room code</label><div class="room-code-row"><input id="lobid" placeholder="Enter a room code" maxlength="24" autocomplete="off"><button id="orand" type="button">New code</button></div>
+  <div class="online-lobby-actions"><button id="oj" class="home-primary" type="button" disabled>Enter room code</button><button id="copy-lobby" type="button">Copy invite</button><button id="olv" type="button" disabled>Leave room</button></div>
+   <p id="ostat" role="status">Choose a name and room code, then join.</p>
+  </section>
+  <section class="online-lobby-seats">
+   <h3>Players</h3>
+   <div id="lobby-seat-0" class="lobby-seat"><i></i><div><b>Ember</b><span id="lobby-player-0">Waiting for host</span></div><small>Host</small></div>
+   <div id="lobby-seat-1" class="lobby-seat"><i></i><div><b>Tide</b><span id="lobby-player-1">Waiting for a friend</span></div><small>Guest</small></div>
+   <p class="lobby-note">The match opens automatically when both seats are filled.</p>
+  </section>
+ </div>
 </section>
 <div id="game-screen" class="hide">
 <header class="arena-topbar">
@@ -46,9 +71,10 @@
   <button id="tb">Learn</button>
   <button id="ob">Online</button>
   <button id="rs" class="new-game">New game</button>
+  <div id="online-actions" class="online-actions hide"><button id="offer-draw">Offer draw</button><button id="resign">Resign</button></div>
  </div>
 </header>
-<div id="olp" class="panel hide"><div class="orow"><input id="uname" placeholder="Username" maxlength="16" autocomplete="off"><input id="lobid" placeholder="Lobby ID" maxlength="24" autocomplete="off"><button id="oj">Join</button><button id="orand">Random ID</button><button id="copy-lobby">Copy invite</button><button id="olv">Leave</button></div><p id="ostat">Pick a username, then type a lobby ID. Share the same ID with a friend.</p></div>
+<div id="draw-offer" class="draw-offer hide" role="status"><span id="draw-offer-text">Your opponent offers a draw.</span><button id="accept-draw">Accept draw</button><button id="decline-draw">Decline</button></div>
 <div class="arena-layout">
  <main class="board-column">
   <div id="status"><span id="dot"></span><span id="msg"></span></div>
@@ -66,8 +92,13 @@
   </section>
   <section class="side-card objective-card">
    <span class="side-label">YOUR OBJECTIVE</span>
-   <p>Capture the enemy <b>Core</b> while keeping yours safe.</p>
+    <p id="objective-copy">Capture the enemy <b>Core</b> while keeping yours safe.</p>
+   <div id="match-score" class="match-score" aria-live="polite"></div>
    <div class="rule-pills"><span><i class="legend-dot"></i> Move</span><span><i class="legend-ring"></i> Capture</span></div>
+  </section>
+  <section id="online-chat" class="online-chat side-card hide">
+   <h3>Match chat</h3><div id="chat-log" class="chat-log" role="log" aria-live="polite"></div>
+   <form id="chat-form" class="chat-form"><input id="chat-input" maxlength="200" placeholder="Send a message" autocomplete="off"><button type="submit" aria-label="Send message">Send</button></form>
   </section>
   <details class="piece-reference">
    <summary><span>Piece reference</span><small>Movement and abilities</small></summary>

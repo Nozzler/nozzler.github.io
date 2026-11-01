@@ -25,7 +25,9 @@ const INFO={
 const key=(q,r)=>q+","+r,inb=(q,r)=>Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r))<=R;
 let cells=[];
 function build(){cells=[];for(let r=-R;r<=R;r++)for(let q=-R;q<=R;q++)if(inb(q,r))cells.push([q,r]);
- const hw=S*SQ*(R+.5)+4,hh=S*1.5*R+S+4;svg.setAttribute("viewBox",`${-hw} ${-hh} ${2*hw} ${2*hh}`);}
+ const xs=cells.map(([q,r])=>q+r/2),rs=cells.map(([,r])=>r),minX=Math.min(...xs),maxX=Math.max(...xs),minR=Math.min(...rs),maxR=Math.max(...rs);
+ const centerX=(minX+maxX)/2,centerR=(minR+maxR)/2,hw=S*SQ*((maxX-minX)/2+.5)+4,hh=S*1.5*((maxR-minR)/2)+S+4;
+ svg.setAttribute("viewBox",`${centerX*S*SQ-hw} ${centerR*S*1.5-hh} ${2*hw} ${2*hh}`);}
 let flip=false;const pxn=(q,r)=>[S*SQ*(q+r/2),S*1.5*r],px=(q,r)=>{const[x,y]=pxn(q,r);return flip?[-x,-y]:[x,y]};
 const hexPts=(s)=>[0,1,2,3,4,5].map(i=>{const a=(60*i-30)*Math.PI/180;return (s*Math.cos(a)).toFixed(1)+","+(s*Math.sin(a)).toFixed(1)}).join(" ");
 
@@ -62,13 +64,16 @@ const MODES={
  classic:{n:"Classic",R:4,rows:[["S","H","C","H","S"],["R","P","P","P","P","R"]],k:1,wr:2,ws:[-1],d:"The standard 61-hex board: 11 pieces each plus one wild card."},
  wild:{n:"Wild rush",R:4,rows:[["S","H","C","H","S"],["R","P","P","P","P","R"]],k:3,wr:2,ws:[-2,-1,0],d:"Classic board, but each player brings three wild cards."},
  grand:{n:"Grand",R:6,rows:[["S","H","L","C","G","H","S"],["R","P","P","P","P","P","P","R"],[null,"P","P","P","P","P","P","P",null]],k:2,wr:3,ws:[-2,-1],d:"Huge 127-hex field: 22 pieces each, including Lancer and Phantom, plus two wild cards."},
- mythic:{n:"Mythic",R:5,rows:[["S","H","L","C","H","S"],["R","P","P","P","P","P","R"]],k:3,wr:3,ws:[-2,-1,0],d:"91-hex board. Each player picks three wild cards from 14, including eight Mythic pieces with game-bending abilities."}};
+ mythic:{n:"Mythic",R:5,rows:[["S","H","L","C","H","S"],["R","P","P","P","P","P","R"]],k:3,wr:3,ws:[-2,-1,0],d:"91-hex board. Each player picks three wild cards from 14, including eight Mythic pieces with game-bending abilities."},
+ twinCore:{n:"Twin Core",R:4,rows:[["S","H","C","H","S"],["R","P","P","P","P","R"]],k:1,wr:2,ws:[-1],extraCores:[[0,2]],coresToWin:2,d:"Each side has two Cores. Capture both enemy Cores to win."}};
 let mode="classic",wilds=[[],[]];
 function setup(){
  clearAITimer();
  const M=MODES[mode];R=M.R;build();board={};
  M.rows.forEach((row,i)=>row.forEach((t,j)=>t&&place(-R+j,R-i,t)));
- turn=0;sel=null;legal=[];over=false;busy=true;last=null;wilds=[[],[]];wc.textContent="";flip=online&&my===1;draw("Choose your wild cards");pick(online?my:0);
+ M.extraCores?.forEach(([q,r])=>{board[key(q,r)]={t:"C",c:0};board[key(-q,-r)]={t:"C",c:1}});
+ turn=0;sel=null;legal=[];over=false;busy=true;last=null;wilds=[[],[]];wc.textContent="";flip=online&&my===1;
+ draw("Choose your wild cards");pick(online?my:0);
 }
 function place(q,r,t){board[key(q,r)]={t,c:0};board[key(-q,-r)]={t,c:1};}
 function pick(s){
@@ -118,9 +123,9 @@ function gen(b,q,r){
  else if("BFVMN".includes(p.t))D.forEach(([a,c])=>ok(q+a,r+c)&&out.push([q+a,r+c]));
  else if(p.t==="W"){D.forEach(([a,c])=>ok(q+a,r+c)&&out.push([q+a,r+c]));
    D.forEach(([a,c])=>[1,2,3].forEach(k=>{const o=inb(q+a*k,r+c*k)&&b[key(q+a*k,r+c*k)];if(o&&o.c===p.c)out.push([q+a*k,r+c*k])}))}
- else{const f=p.c?[[0,1],[-1,1]]:[[0,-1],[1,-1]];
+ else{const f=p.f||(p.c?[[0,1],[-1,1]]:[[0,-1],[1,-1]]),back=f.map(([a,c])=>[-a,-c]);
    f.forEach(([a,c])=>free(q+a,r+c)&&out.push([q+a,r+c]));
-   [[1,0],[-1,0]].forEach(([a,c])=>{const o=inb(q+a,r+c)&&b[key(q+a,r+c)];if(o&&can(b,q+a,r+c,p.c))out.push([q+a,r+c])});}
+   D.filter(([a,c])=>!f.some(([x,y])=>x===a&&y===c)&&!back.some(([x,y])=>x===a&&y===c)).forEach(([a,c])=>{const o=inb(q+a,r+c)&&b[key(q+a,r+c)];if(o&&can(b,q+a,r+c,p.c))out.push([q+a,r+c])});}
  return out;
 }
 function apply(b,[fq,fr,tq,tr]){
@@ -129,7 +134,8 @@ function apply(b,[fq,fr,tq,tr]){
  if(p.t==="A"&&dist>1&&tg){delete nb[key(tq,tr)];return nb}
  delete nb[key(fq,fr)];
  p={...p,moved:true};
- if(p.t==="P"&&tr===(p.c?R:-R))p={t:"S",c:p.c,moved:true};
+ const goal=p.goal?(p.goal.axis==="q"?tq:p.goal.axis==="r"?tr:tq+tr):p.c?tr:-tr;
+ if(p.t==="P"&&goal===(p.goal?p.goal.value:R))p={t:"S",c:p.c,moved:true};
  if(tg&&(tg.c===p.c||p.t==="J")){nb[key(fq,fr)]={...tg,moved:true};nb[key(tq,tr)]=p;return nb}
  if(p.t==="T"&&tg){nb[key(tq,tr)]=p;if(inb(tq+dq,tr+dr))nb[key(tq+dq,tr+dr)]={...tg,moved:true};return nb}
  if(p.t==="B"&&tg){D.forEach(([a,c])=>{const k=key(tq+a,tr+c),o=nb[k];if(o&&o.t!=="C"&&o.c!==p.c)delete nb[k]});delete nb[key(tq,tr)];return nb}
@@ -147,6 +153,8 @@ function allMoves(b,c){const m=[];
   gen(b,q,r).forEach(([x,y])=>m.push([q,r,x,y]));}
  return m;}
 const hasCore=(b,c)=>Object.values(b).some(p=>p.t==="C"&&p.c===c);
+const countCores=(b,c)=>Object.values(b).filter(p=>p.t==="C"&&p.c===c).length;
+const coresRequired=()=>MODES[mode].coresToWin||1;
 const AI_STYLES={
  balanced:{depth:2,material:1,center:.2,safety:1,advance:.2,noise:.18},
  raider:{depth:2,material:.78,center:.42,safety:.5,advance:.48,noise:.3},
@@ -181,15 +189,15 @@ function orderedMoves(b,side){
   const [fq,fr,tq,tr]=m,p=b[key(fq,fr)],target=b[key(tq,tr)];
   let priority=target?100+VAL[target.t]*8-VAL[p.t]:0;
   const next=apply(b,m);
-  if(!hasCore(next,1-side))priority+=10000;
+  if(countCores(next,1-side)===0)priority+=10000;
   if(p.t==="P"&&tr===(p.c?R:-R))priority+=45;
   if(p.t==="T"&&target&&(!inb(tq+Math.sign(tq-fq),tr+Math.sign(tr-fr))))priority+=90;
   return {m,priority,i};
  }).sort((a,b)=>b.priority-a.priority||a.i-b.i).map(x=>x.m);
 }
 function search(b,depth,side,alpha,beta){
- if(!hasCore(b,0))return 100000+depth;
- if(!hasCore(b,1))return -100000-depth;
+ if(countCores(b,0)===0)return 100000+depth;
+ if(countCores(b,1)===0)return -100000-depth;
  if(depth===0)return aiEval(b,side);
  const moves=orderedMoves(b,side);
  if(!moves.length)return side===1?-90000-depth:90000+depth;
@@ -264,7 +272,8 @@ function move(m,remote){
   net.send({type:"move",m,seq:net.seq});
  }
  const ob=board;board=apply(board,m);fx=mkfx(ob,board,m);last=m;sel=null;legal=[];
- if(!hasCore(board,1-turn)){over=true;return draw(NAMES[turn]+" takes the Core and wins!");}
+ if(countCores(board,1-turn)===0){over=true;return draw(NAMES[turn]+(coresRequired()>1?" captures both enemy Cores and wins!":" takes the Core and wins!"))}
+ if(countCores(board,turn)===0){over=true;return draw(NAMES[1-turn]+(coresRequired()>1?" captures both enemy Cores and wins!":" takes the Core and wins!"))}
  turn=1-turn;
  if(!allMoves(board,turn).length){over=true;return draw(NAMES[turn]+" is blocked. "+NAMES[1-turn]+" wins!");}
  draw();
@@ -300,12 +309,23 @@ function draw(msg){
  h+=fxLayer();fx=null;svg.innerHTML=h;
  document.getElementById("dot").style.background=COL[turn];document.getElementById("status").classList.toggle("win",over);
  document.getElementById("msg").textContent=msg||(vsAI&&turn===1?"Tide · "+aiStyle.charAt(0).toUpperCase()+aiStyle.slice(1)+" is thinking…":(online&&turn===my?"Your move":NAMES[turn]+" to move"));
+ updateMatchScore();
  updateCoach();
 }
 function updateCoachButton(){
  const button=document.getElementById("coach-toggle");
  button.textContent=coachEnabled?"Coach on":"Coach off";
  button.setAttribute("aria-pressed",coachEnabled?"true":"false");
+}
+function updateMatchScore(){
+ const score=document.getElementById("match-score");
+ if(!score||!board)return;
+ const result=document.getElementById("msg").textContent;
+ score.innerHTML=NAMES.map((name,side)=>{
+  const cores=countCores(board,side),active=turn===side&&!over,eliminated=cores===0;
+  const state=over?(result.startsWith(name+" ")?"Winner":result.startsWith("Draw")?"Draw":eliminated?"Out":"Ended"):active?"Moving":"Waiting";
+  return `<div class="score-seat ${active?"is-active":""} ${eliminated?"is-out":""}" style="--seat-color:${COL[side]}"><i></i><b>${name}</b><span>Cores ${cores}/${coresRequired()}</span><small>${state}</small></div>`;
+ }).join("");
 }
 function updateCoach(){
  const text=document.getElementById("coach-msg");
@@ -323,12 +343,12 @@ function updateCoach(){
    threats.get(k).add(m[0]+","+m[1]);
   }
  });
- const core=Object.keys(board).find(k=>board[k].t==="C"&&board[k].c===side);
- if(core&&threats.has(core)){
+ const core=Object.keys(board).find(k=>board[k].t==="C"&&board[k].c===side&&threats.has(k));
+ if(core){
   const attackers=threats.get(core),candidate=allMoves(board,side).map(m=>({m,p:board[key(m[0],m[1])]}));
   const safe=candidate.filter(({m})=>{
-   const next=apply(board,m),nextCore=Object.keys(next).find(k=>next[k].t==="C"&&next[k].c===side);
-   return nextCore&&!allMoves(next,1-side).some(reply=>key(reply[2],reply[3])===nextCore);
+   const next=apply(board,m),nextCores=Object.keys(next).filter(k=>next[k].t==="C"&&next[k].c===side);
+   return nextCores.length&&!nextCores.some(nextCore=>allMoves(next,1-side).some(reply=>key(reply[2],reply[3])===nextCore));
   });
   safe.sort((a,b)=>{
    const ac=a.p.t==="C"?0:attackers.has(key(a.m[0],a.m[1]))?1:2;
@@ -336,12 +356,13 @@ function updateCoach(){
    return ac-bc;
   });
   const attacker=board[[...attackers][0]],pieceName=attacker?INFO[attacker.t][0]:"an enemy piece";
+  const threatenedCore=coresRequired()>1?"one of your Cores":"your Core",safeCores=coresRequired()>1?"both Cores":"it";
   if(safe.length&&turn===side){
    coachSuggestedMove=safe[0].m;
-   text.textContent="Careful — your Core is threatened by "+pieceName+". Hex found a move that gets it out of immediate danger.";
+   text.textContent="Careful — "+threatenedCore+" is threatened by "+pieceName+". Hex found a move that gets "+safeCores+" out of immediate danger.";
    action.classList.remove("hide");
   }else{
-   text.textContent="Careful — your Core is threatened by "+pieceName+". Move it, capture the attacker, or block its line.";
+   text.textContent="Careful — "+threatenedCore+" is threatened by "+pieceName+". Move it, capture the attacker, or block its line.";
   }
  }else if(threats.size){
   const names=[...threats.keys()].map(k=>INFO[board[k].t][0]);
@@ -364,9 +385,20 @@ svg.addEventListener("click",e=>{
  if(p&&p.c===turn){sel=[q,r];legal=gen(board,q,r)}else{sel=null;legal=[]}
  draw();
 });
-function setAI(v){if(online)leaveLobby(true);vsAI=v;m1.classList.toggle("on",v);m2.classList.toggle("on",!v);document.getElementById("ai-style").disabled=!v;setup()}
+function configureModeControls(){
+ m1.classList.remove("hide");m2.classList.remove("hide");
+ m1.classList.toggle("on",vsAI);m2.classList.toggle("on",!vsAI);
+ document.getElementById("ai-style").classList.remove("hide");
+ document.getElementById("ai-style").disabled=!vsAI;
+ document.querySelector(".ai-style-control").classList.remove("hide");
+ document.getElementById("coach").classList.remove("hide");
+ document.getElementById("ob").disabled=false;
+ document.getElementById("objective-copy").textContent=coresRequired()>1?"Each side has two Cores. Capture both enemy Cores to win.":"Capture the enemy Core while keeping yours safe.";
+ [...modes.children].forEach(button=>{button.disabled=false});
+}
+function setAI(v){if(typeof online!=="undefined"&&online)leaveLobby(true);vsAI=v;configureModeControls();setup()}
 m1.onclick=()=>setAI(true);m2.onclick=()=>setAI(false);rs.onclick=()=>newGame();
 modes.innerHTML=Object.keys(MODES).map(k=>`<button data-m="${k}">${MODES[k].n}</button>`).join("");
-function syncMode(){[...modes.children].forEach(b=>b.classList.toggle("on",b.dataset.m===mode));md.textContent=MODES[mode].d;document.getElementById("mode-label").textContent=MODES[mode].n}
-modes.onclick=e=>{const b=e.target.closest("button");if(b){if(online&&!isHost)return ostat("Only the lobby host can change the mode.");mode=b.dataset.m;syncMode();newGame()}};
+function syncMode(){[...modes.children].forEach(b=>b.classList.toggle("on",b.dataset.m===mode));md.textContent=MODES[mode].d;document.getElementById("mode-label").textContent=MODES[mode].n;configureModeControls()}
+modes.onclick=e=>{const b=e.target.closest("button");if(b&&!b.disabled){if(online&&!isHost)return ostat("Only the lobby host can change the mode.");mode=b.dataset.m;syncMode();newGame()}};
 syncMode();
