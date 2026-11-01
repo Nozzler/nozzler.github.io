@@ -59,14 +59,16 @@ window.HexfallTrainingReady=fetch("data/lessons.json").then(response=>{
 }).then(data=>{
  const CHAPTERS=data.chapters,COURSE=data.lessons,CHAPTER_SIZE=data.chapterSize;
  const DR=data.puzzles.map(puzzle=>({...puzzle,ck:(b,m,a)=>trainingGoal(puzzle.goal,b,m,a)}));
-let tdI=0,td=null;const done=new Set(),drillStats={};
+let tdI=0,td=null,savedCurrent=null;const done=new Set(),drillStats={};
 try{
  const saved=JSON.parse(localStorage.getItem("hf_training")||"{}");
  if(Array.isArray(saved.done))saved.done.filter(i=>Number.isInteger(i)&&i>=0&&i<COURSE.length).forEach(i=>done.add(i));
+ if(Number.isInteger(saved.current)&&saved.current>=0&&saved.current<COURSE.length)savedCurrent=saved.current;
  if(saved.stats&&typeof saved.stats==="object")Object.assign(drillStats,saved.stats);
 }catch(error){console.warn("Could not restore Hexfall training progress.",error)}
-function saveTraining(){try{localStorage.setItem("hf_training",JSON.stringify({done:[...done],stats:drillStats}))}catch(error){console.warn("Could not save Hexfall training progress.",error)}}
+function saveTraining(){try{localStorage.setItem("hf_training",JSON.stringify({done:[...done],stats:drillStats,current:tdI}))}catch(error){console.warn("Could not save Hexfall training progress.",error)}}
 const nextTrainingIndex=()=>{const i=COURSE.findIndex((_,index)=>!done.has(index));return i<0?0:i};
+tdI=savedCurrent===null?nextTrainingIndex():savedCurrent;
 const HEX_OFFSETS=[];for(let q=-3;q<=3;q++)for(let r=-3;r<=3;r++)if(Math.max(Math.abs(q),Math.abs(r),Math.abs(q+r))<=3)HEX_OFFSETS.push([q,r]);
 const trainingHexDistance=(a,b)=>Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]),Math.abs(a[0]+a[1]-b[0]-b[1]));
 function makeTrainingVariant(id,offset,decoys){
@@ -109,7 +111,7 @@ function trainingPosition(id){
  }
  return makeTrainingVariant(id,[0,0],0);
 }
-function drillStart(i){const position=withR3(()=>trainingPosition(i));tdI=i;td={b:position.b,seq:position.seq,sel:null,mv:[],hl:[],msg:"",ok:false,step:0,learned:false,quizMsg:""}}
+function drillStart(i){const position=withR3(()=>trainingPosition(i));tdI=i;td={b:position.b,seq:position.seq,sel:null,mv:[],hl:[],msg:"",ok:false,step:0,learned:false,quizMsg:""};saveTraining()}
 const trainingMove=(b,m,a)=>{const expected=td.seq?.[td.step];return expected?expected.every((v,i)=>v===m[i]):DR[COURSE[tdI].puzzleIndex].ck(b,m,a)};
 function trainClick(q,r){
  if(td.ok||!td.learned)return;
@@ -160,7 +162,7 @@ const TABS={
 <div class="pcs">${Object.keys(INFO).map(k=>`<button data-p="${k}" class="${k===tp?"on":""}" title="${INFO[k][0]}"><svg width="36" height="36" viewBox="-20 -20 40 40"><circle r="18" fill="${COL[0]}" stroke="#14111c" stroke-width="2"/>${icon(k,"#1a1420")}</svg></button>`).join("")}</div>
 <div class="demo">${demo(tp)}<div><h3 style="margin-top:0">${INFO[tp][0]}${WILD.includes(tp)?" (wild card)":MYTH.includes(tp)?" (Mythic wild card)":""}</h3><p>${INFO[tp][1]}</p><h3>Strategy</h3><p>${TIP[tp]}</p></div></div>
 <h3>Rough values</h3><p class="key">Core: priceless. Seer, Lancer, Frostbinder: 5. Hopper, Phantom, Bomber, Bulwark: 4. Runner, Swapper: 3. Pike: 1.</p>`,
- Train:()=>{if(!td)drillStart(nextTrainingIndex());const courseLesson=COURSE[tdI],chapter=CHAPTERS[courseLesson.chapterIndex],d=DR[courseLesson.puzzleIndex],stats=drillStats[tdI]||{attempts:0,hints:0},percent=Math.round(done.size/COURSE.length*100),unlocked=nextTrainingIndex(),start=courseLesson.chapterIndex*CHAPTER_SIZE,chapterLessons=COURSE.slice(start,start+CHAPTER_SIZE);
+ Train:()=>{if(!td)drillStart(tdI);const courseLesson=COURSE[tdI],chapter=CHAPTERS[courseLesson.chapterIndex],d=DR[courseLesson.puzzleIndex],stats=drillStats[tdI]||{attempts:0,hints:0},percent=Math.round(done.size/COURSE.length*100),unlocked=nextTrainingIndex(),start=courseLesson.chapterIndex*CHAPTER_SIZE,chapterLessons=COURSE.slice(start,start+CHAPTER_SIZE);
  return `<p>Learn a tactic, check your recall, then solve the board. Browse any chapter or lesson; progress marks what you have completed.</p>
 <div class="training-progress"><div><b>Training path</b><span>${done.size} / ${COURSE.length} complete</span></div><div class="progress-track"><span style="width:${percent}%"></span></div></div>
 <div class="training-layout"><div class="training-sidebar">
