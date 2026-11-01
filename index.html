@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hexfall</title>
+<meta name="description" content="Hexfall: a chess-like strategy game on a hex board with online multiplayer.">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="brand"><div class="brand-lockup"><svg class="hexfall-mark" viewBox="0 0 48 48" aria-hidden="true"><path class="mark-tile" d="M24 3 42 13.5v21L24 45 6 34.5v-21L24 3Z"/><path class="mark-letter" d="M17 16v16m14-16v16M17 24h14"/></svg><h1>HEXFALL</h1></div><p class="sub">A strategy duel on a hexagonal board. Take the enemy Core.</p></header>
+<section id="home" class="home">
+ <div class="home-card">
+  <div class="eyebrow">WELCOME TO THE ARENA</div>
+  <h2>Every hex holds a new plan.</h2>
+  <p>Learn the pieces, spot danger, and outplay your rival. Choose how you want to begin.</p>
+  <div class="quick-setup">
+   <label for="home-mode">Choose your board</label>
+   <select id="home-mode"></select>
+   <p id="home-mode-description"></p>
+  </div>
+  <div class="home-actions">
+   <button id="start-guided" class="home-primary"><span>Play with Hex</span><small>A full game with a friendly coach</small></button>
+   <button id="start-ai"><span>Play vs computer</span><small>Practice at your own pace</small></button>
+   <button id="start-local"><span>Two players</span><small>Share the board on one screen</small></button>
+   <button id="start-online"><span>Play online</span><small>Meet a friend in a lobby</small></button>
+  </div>
+  <div class="home-footer"><button id="home-learn" class="text-button">Learn the rules &amp; practice drills</button></div>
+ </div>
+ <div class="home-side"><div class="mascot big-mascot"><span>✦</span></div><h3>Meet Hex</h3><p>Your tiny tactics guide. Hex points out threats and shares a tip when you need one.</p> <div class="home-note"><b>New to Hexfall?</b><br>Skirmish is a shorter game with fewer pieces. Hex can point out threats while you play.</div></div>
+</section>
+<div id="game-screen" class="hide">
+<header class="arena-topbar">
+ <button id="back-home" class="text-button">← Menu</button>
+ <div class="arena-title"><svg class="hexfall-mark arena-logo" viewBox="0 0 48 48" aria-hidden="true"><path class="mark-tile" d="M24 3 42 13.5v21L24 45 6 34.5v-21L24 3Z"/><path class="mark-letter" d="M17 16v16m14-16v16M17 24h14"/></svg><div><b>HEXFALL</b><span><span id="mode-label"></span> · Strategy match</span></div></div>
+ <div class="arena-actions">
+  <button id="m1" class="on">Computer</button>
+  <button id="m2">2 players</button>
+  <label class="ai-style-control" for="ai-style">AI style</label>
+  <select id="ai-style" aria-label="Computer opponent style">
+   <option value="balanced">Balanced</option>
+   <option value="raider">Raider</option>
+   <option value="guardian">Guardian</option>
+  </select>
+  <button id="tb">Learn</button>
+  <button id="ob">Online</button>
+  <button id="rs" class="new-game">New game</button>
+ </div>
+</header>
+<div id="olp" class="panel hide"><div class="orow"><input id="uname" placeholder="Username" maxlength="16" autocomplete="off"><input id="lobid" placeholder="Lobby ID" maxlength="24" autocomplete="off"><button id="oj">Join</button><button id="orand">Random ID</button><button id="copy-lobby">Copy invite</button><button id="olv">Leave</button></div><p id="ostat">Pick a username, then type a lobby ID. Share the same ID with a friend.</p></div>
+<div class="arena-layout">
+ <main class="board-column">
+  <div id="status"><span id="dot"></span><span id="msg"></span></div>
+  <svg id="b" viewBox="-245 -225 490 450" role="application" aria-label="Hexfall board"></svg>
+  <div class="board-footer"><span><i class="legend-dot"></i> Move <i class="legend-ring"></i> Capture <i class="legend-red"></i> Under threat</span><span id="wc"></span></div>
+  <section class="mode-picker">
+   <div class="mode-heading"><b>Board</b><span id="md"></span></div>
+   <div class="mode-row" id="modes"></div>
+  </section>
+ </main>
+ <aside class="game-sidebar">
+  <section id="coach" class="coach" aria-live="polite">
+   <div class="mascot"><span>✦</span></div>
+   <div class="coach-copy"><div class="coach-heading"><b>Hex <span class="coach-caption">· your coach</span></b><button id="coach-toggle" class="coach-toggle" aria-pressed="true">Coach on</button></div><p id="coach-msg">Let’s look for threats together.</p><button id="coach-action" class="coach-action hide">Play Hex’s safe move</button></div>
+  </section>
+  <section class="side-card objective-card">
+   <span class="side-label">YOUR OBJECTIVE</span>
+   <p>Capture the enemy <b>Core</b> while keeping yours safe.</p>
+   <div class="rule-pills"><span><i class="legend-dot"></i> Move</span><span><i class="legend-ring"></i> Capture</span></div>
+  </section>
+  <details class="piece-reference">
+   <summary><span>Piece reference</span><small>Movement and abilities</small></summary>
+   <div id="guide"></div>
+   <div class="goal">A Pike reaching the far edge becomes a Seer. An unmoved Seer cannot capture an unmoved Core or Seer.</div>
+  </details>
+  <button id="sidebar-learn" class="sidebar-learn">How to play <span>→</span></button>
+ </aside>
+</div>
+</div>
+<div id="modal" class="hide"><div class="pick"><h2 id="mt"></h2><p>Wild cards join your army on the open hexes in front of it. Duplicates are allowed.</p><div id="cards"></div></div></div>
+<div id="tut" class="hide"><div class="tbox"><div class="th"><h2>How to play Hexfall</h2><button id="tx">Close</button></div><div class="tabs" id="tabs"></div><div id="tc"></div></div></div>
+<script src="js/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="js/game.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="js/online.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
