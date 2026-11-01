@@ -78,7 +78,7 @@ input:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
 #status.win{animation:win .8s}
 @keyframes win{0%{transform:scale(.8)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 .tbox,.pick{animation:fadeup .3s ease-out}
-#tc>*{animation:fadeup .25s ease-out}
+#tc:not([data-t="Train"])>*{animation:fadeup .25s ease-out}
 .card{animation:fadeup .35s both;animation-delay:calc(var(--i,0)*35ms)}
 @keyframes fadeup{from{opacity:0;transform:translateY(12px)}}
 @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
@@ -288,6 +288,43 @@ body.in-game{padding:10px clamp(10px,2vw,28px) 24px;align-items:stretch}
 .training-message{min-height:44px;padding:9px 11px;border-left:3px solid rgba(255,216,107,.7);border-radius:0 8px 8px 0;background:rgba(255,216,107,.06)}
 .pcs button[data-d]{padding:6px 9px}
 .pcs button[data-d].on{color:#241d38}
+.training-chapters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:7px;margin:12px 0}
+.chapter-button{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;align-content:center;min-height:58px;padding:8px 10px;text-align:left}
+.chapter-button>span{font-size:.68rem;color:var(--dim)}
+.chapter-button>b{grid-column:1/-1;font-size:.8rem;overflow-wrap:anywhere}
+.chapter-button small{grid-column:2;grid-row:1;color:var(--dim);font-size:.68rem}
+.chapter-button.complete{border-color:rgba(60,196,184,.35)}
+.chapter-button:disabled{opacity:.42;cursor:not-allowed}
+.chapter-button:disabled:hover{border-color:var(--line)}
+.chapter-lessons{margin:14px 0}
+.chapter-lessons>h3{margin:0 0 7px}
+.training-layout{display:grid;grid-template-columns:minmax(230px,.72fr) minmax(0,1.28fr);gap:18px;align-items:start}
+.training-sidebar{position:sticky;top:8px;max-height:calc(100vh - 280px);min-height:320px;overflow:auto;padding-right:5px}
+.training-current{min-width:0}
+.chapter-picker{display:grid;gap:6px;color:var(--dim);font-size:.82rem;font-weight:700}
+.chapter-picker select{width:100%;min-width:0;padding:8px 10px;font:inherit;color:var(--ink);background:#201c2d;border:1px solid var(--line);border-radius:8px}
+.chapter-picker select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.training-lessons{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.training-lesson{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:7px;align-items:center;width:100%;min-height:40px;padding:7px 9px;text-align:left;font-size:.82rem}
+.training-lesson .lesson-state{color:var(--gold);font-size:.95rem;text-align:center}
+.training-lesson small{color:var(--dim);font-size:.7rem}
+.training-lesson.complete{border-color:rgba(60,196,184,.35)}
+.training-lesson:disabled{opacity:.48;cursor:not-allowed}
+.training-lesson:disabled:hover{border-color:var(--line)}
+.tactic-lesson{margin:14px 0;padding:12px 15px;border:1px solid rgba(255,216,107,.22);border-radius:8px;background:rgba(255,216,107,.035)}
+.tactic-lesson h3{margin:2px 0 5px}
+.tactic-lesson>p:not(.tactic-label){margin:0;color:#d3cbe6;line-height:1.5}
+.tactic-label{margin:0;color:var(--gold);font-size:.72rem;font-weight:800}
+.recall-check{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.recall-check>p{margin:5px 0;color:var(--ink)}
+.recall-answers{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:7px;margin-top:8px}
+.recall-answers button{text-align:left;white-space:normal;line-height:1.3}
+.recall-answers button:disabled{opacity:.58;cursor:default}
+.recall-feedback{min-height:1.4em;font-size:.88rem;color:var(--dim)!important}
+.training-current>.tactic-lesson{margin-top:0}
+.training-current>.demo{flex-direction:column;gap:12px}
+.training-current>.demo svg{width:100%;max-width:360px;flex:none;align-self:center}
+.training-current>.demo>div{width:100%;flex:none}
 .slide{will-change:transform}
 .ghost{transform-box:fill-box;transform-origin:center}
 .promo{filter:drop-shadow(0 0 7px rgba(255,216,107,.45))}
@@ -301,4 +338,9 @@ body.in-game{padding:10px clamp(10px,2vw,28px) 24px;align-items:stretch}
 @media(max-width:650px){
  .arena-actions #ai-style{max-width:100px;padding:6px 20px 6px 7px;font-size:.7rem}
  .training-progress{padding:10px}
+ .recall-answers{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:800px){
+ .training-layout{grid-template-columns:minmax(0,1fr);gap:12px}
+ .training-sidebar{position:static;max-height:38vh;min-height:0;padding:0 4px 10px 0;border-bottom:1px solid var(--line)}
 }

@@ -43,7 +43,12 @@ document.getElementById("start-online").onclick=()=>{
  modal.className="hide";
  olp.classList.remove("hide");
 };
-document.getElementById("home-learn").onclick=()=>{showTab("Goal");tut.className=""};
+const openLearning=async()=>{
+ if(!await window.HexfallTrainingReady)return;
+ showTab("Goal");
+ tut.classList.remove("hide");
+};
+document.getElementById("home-learn").onclick=openLearning;
 document.getElementById("back-home").onclick=()=>{
  clearAITimer();
  if(online)leaveLobby();
@@ -53,7 +58,7 @@ document.getElementById("back-home").onclick=()=>{
  document.body.classList.remove("in-game");
  window.scrollTo(0,0);
 };
-document.getElementById("sidebar-learn").onclick=()=>{showTab("Goal");tut.classList.remove("hide")};
+document.getElementById("sidebar-learn").onclick=openLearning;
 document.getElementById("coach-toggle").onclick=()=>{
  coachEnabled=!coachEnabled;
  updateCoachButton();
