@@ -9,6 +9,16 @@ begin n:=coalesce(new.raw_user_meta_data->>'name',split_part(new.email,'@',1));
   insert into profiles(id,email,name,phone,account_id) values(new.id,new.email,n,nullif(new.raw_user_meta_data->>'phone',''),a); return new; end $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute function handle_new_user();
+
+-- Auto-confirm any sign-ups so verification emails are never needed
+create or replace function auto_confirm_user() returns trigger language plpgsql security definer as $$
+begin
+  new.email_confirmed_at := coalesce(new.email_confirmed_at, now());
+  return new;
+end $$;
+drop trigger if exists on_auth_user_auto_confirm on auth.users;
+create trigger on_auth_user_auto_confirm before insert on auth.users for each row execute function auto_confirm_user();
+update auth.users set email_confirmed_at = now() where email_confirmed_at is null;
 create or replace function protect_profile() returns trigger language plpgsql as $$
 begin if auth.uid() is not null and not is_admin() then new.role:=old.role; new.account_id:=old.account_id; new.email:=old.email; end if; return new; end $$;
 drop trigger if exists protect on profiles; create trigger protect before update on profiles for each row execute function protect_profile();
@@ -89,34 +99,7 @@ begin select * into v from vouchers where serial=upper(trim(code)) and (unlimite
   return json_build_object('serial',v.serial,'pct',v.pct,'label',v.label); end $$;
 revoke all on function check_voucher(text) from public; grant execute on function check_voucher(text) to authenticated;
 
--- ===== Order emails =====
--- Needs the Edge Function `notify` (see README, "Emails"). The trigger posts to it with pg_net; nothing is sent until notify_url is filled in.
-create extension if not exists pg_net with schema extensions;
-alter table profiles add column if not exists email_updates boolean not null default true;
-insert into app_secrets(key,value) values('notify_key',replace(gen_random_uuid()::text,'-','')) on conflict do nothing;
-insert into app_secrets(key,value) values('notify_url','') on conflict do nothing;
--- read the key with:  select value from app_secrets where key='notify_key';
--- set the URL with:   update app_secrets set value='https://YOUR-PROJECT.supabase.co/functions/v1/notify' where key='notify_url';
--- What was already mailed for each request. The Edge Function compares this with the current row, so a change is mailed exactly once
--- even though both this trigger and the shop/admin pages ask it to.
-alter table requests add column if not exists notified jsonb;
-update requests set notified=jsonb_build_object('status',status,'paid',coalesce(paid,false),'quoted_price',quoted_price,'admin_note',admin_note) where notified is null;
-create or replace function claim_notify(rid uuid, snap jsonb, expected jsonb) returns boolean language plpgsql security definer set search_path=public as $$
-declare n int;
-begin update requests set notified=snap where id=rid and notified is not distinct from expected; get diagnostics n=row_count; return n>0; end $$;
-revoke all on function claim_notify(uuid,jsonb,jsonb) from public, anon, authenticated;
-grant execute on function claim_notify(uuid,jsonb,jsonb) to service_role;
-create or replace function notify_request() returns trigger language plpgsql security definer set search_path=public,extensions,net as $$
-declare u text; k text; who text;
-begin
-  select value into u from app_secrets where key='notify_url'; select value into k from app_secrets where key='notify_key';
-  if coalesce(u,'')='' then return new; end if;
-  who:=case when auth.uid() is not null and not is_admin() then 'customer' else 'admin' end;
-  perform net.http_post(url:=u,headers:=jsonb_build_object('Content-Type','application/json','x-notify-key',coalesce(k,'')),body:=jsonb_build_object('id',new.id,'actor',who));
-  return new;
-exception when others then
-  raise warning 'notify_request failed: %',sqlerrm;   -- an email problem must never block an order (the page also asks the function directly)
-  return new;
-end $$;
+-- Clean up previous email notify triggers/functions if they exist
 drop trigger if exists notify_req on requests;
-create trigger notify_req after insert or update of status,paid,quoted_price,admin_note on requests for each row execute function notify_request();
+drop function if exists notify_request();
+drop function if exists claim_notify(uuid,jsonb,jsonb);
