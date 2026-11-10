@@ -1,5 +1,3 @@
 node_modules/
-esp32/*
-*.ino
 .env
 .DS_Store

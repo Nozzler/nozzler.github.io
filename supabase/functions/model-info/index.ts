@@ -1,49 +1,85 @@
-// Reads weight (g) and print time from a MakerWorld / Printables / Thingiverse / Cults page.
-// Deploy:  supabase functions deploy model-info      (browsers cannot read these pages directly because of CORS)
-// Best effort: it looks for print-profile data embedded in the page (JSON) and falls back to the visible text.
-const OK = /(^|\.)(makerworld\.com|printables\.com|thingiverse\.com|cults3d\.com)$/i;
+// Fetches the model behind a MakerWorld / Printables / Thingiverse link and returns the FILE (STL or 3MF) to the browser,
+// which measures it with the same code as an uploaded file. Browsers cannot do this themselves (CORS + login walls).
+// Deploy:  supabase functions deploy model-info
+// Optional secrets (supabase secrets set NAME=value):
+//   MAKERWORLD_TOKEN   your MakerWorld access token, lets the function download the sliced .3mf
+//   THINGIVERSE_TOKEN  a Thingiverse app token (Thingiverse gives out no files without one)
+// Answers: the file (application/octet-stream), or JSON {title, profiles:[{n,w,t}], error?} when only numbers could be found.
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
-const out = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
+const json = (o: unknown) => new Response(JSON.stringify(o), { headers: { ...cors, "Content-Type": "application/json" } });
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+const MAX = 60 * 1024 * 1024;
 type Pr = { n?: string; w: number; t: number };
-const SEC = /^(prediction|duration|printduration|print_duration)$/i, AMB = /^(printtime|print_time|printingtime|printing_time|estimatedtime|estimated_time)$/i;
+type Found = { file?: Uint8Array; title?: string; profiles?: Pr[] };
 
+async function getJson(url: string, init: any = {}) {
+  const r = await fetch(url, { ...init, headers: { "User-Agent": UA, Accept: "application/json", ...(init.headers || {}) }, signal: AbortSignal.timeout(12000) });
+  if (!r.ok) throw new Error(new URL(url).hostname + " answered " + r.status);
+  return r.json();
+}
+async function getFile(url: string) {
+  if (!url.startsWith("https://")) throw new Error("bad download link");
+  const r = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(50000) });
+  if (!r.ok) throw new Error("download failed (" + r.status + ")");
+  if (+(r.headers.get("content-length") || 0) > MAX) throw new Error("file is too large");
+  const b = new Uint8Array(await r.arrayBuffer());
+  if (b.length > MAX) throw new Error("file is too large");
+  return b;
+}
+
+// weight + time pairs inside JSON (MakerWorld print profiles: weight in g, prediction in seconds)
+const SEC = /^(prediction|duration|printduration|print_duration)$/i, AMB = /^(printtime|print_time|printingtime|printing_time|estimatedtime|estimated_time)$/i;
 function walk(o: any, res: Pr[], d = 0) {
   if (!o || typeof o !== "object" || d > 14 || res.length >= 8) return;
   if (!Array.isArray(o)) {
     const k = Object.keys(o);
     const wk = k.find((x) => /^(weight|filament_?weight|totalweight)$/i.test(x) && typeof o[x] === "number" && o[x] > 0.5 && o[x] < 20000);
     const tk = k.find((x) => (SEC.test(x) || AMB.test(x)) && typeof o[x] === "number" && o[x] > 0);
-    if (wk && tk) {
-      const v = o[tk], min = SEC.test(tk) || v >= 600 ? v / 60 : v;
-      res.push({ n: o.title || o.name || o.profileName, w: Math.round(o[wk] * 10) / 10, t: Math.round(min) });
-    }
+    if (wk && tk) { const v = o[tk]; res.push({ n: o.title || o.name || o.profileName, w: Math.round(o[wk] * 10) / 10, t: Math.round(SEC.test(tk) || v >= 600 ? v / 60 : v) }); }
   }
   for (const v of Object.values(o)) walk(v, res, d + 1);
 }
 
-function fromText(html: string): Pr[] {
-  const t = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
-  const w = t.match(/(?:filament|weight)[^0-9]{0,40}(\d+(?:\.\d+)?)\s?g\b/i) || t.match(/(\d+(?:\.\d+)?)\s?g\s+(?:of\s+)?filament/i);
-  const m = t.match(/(?:print(?:ing)?\s*time|estimated\s*time)[^0-9]{0,30}(?:(\d+)\s*d\w*\s*)?(?:(\d+)\s*h\w*\s*)?(?:(\d+)\s*m\w*)?/i);
-  const min = m ? (+(m[1] || 0)) * 1440 + (+(m[2] || 0)) * 60 + (+(m[3] || 0)) : 0;
-  return w ? [{ w: +w[1], t: min }] : [];
+async function printables(id: string): Promise<Found> {
+  const gql = (query: string, variables: unknown) => getJson("https://api.printables.com/graphql/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, variables }) });
+  const q = await gql(`query($id:ID!){print(id:$id){name stls{id name fileSize}}}`, { id });
+  const p = q.data?.print; if (!p) throw new Error("Printables model not found");
+  const f = (p.stls || []).find((x: any) => !x.fileSize || x.fileSize < MAX); if (!f) throw new Error("no STL/3MF file on this model");
+  const m = await gql(`mutation($id:ID!,$printId:ID!,$fileType:DownloadFileTypeEnum!,$source:DownloadSourceEnum!){getDownloadLink(id:$id,printId:$printId,fileType:$fileType,source:$source){ok errors{message} output{link}}}`,
+    { id: f.id, printId: id, fileType: "stl", source: "model_detail" });
+  const link = m.data?.getDownloadLink?.output?.link; if (!link) throw new Error(m.data?.getDownloadLink?.errors?.[0]?.message || "Printables gave no download link");
+  return { file: await getFile(link), title: p.name };
+}
+async function makerworld(id: string): Promise<Found> {
+  const d = await getJson(`https://makerworld.com/api/v1/design-service/design/${id}`), profiles: Pr[] = []; walk(d, profiles);
+  const tok = Deno.env.get("MAKERWORLD_TOKEN"), inst = (d.instances || [])[0];
+  if (tok && inst) {
+    try {
+      const j = await getJson(`https://makerworld.com/api/v1/design-service/instance/${inst.id}/f3mf?type=download`, { headers: { Authorization: "Bearer " + tok } });
+      if (j.url) return { file: await getFile(j.url), title: d.title, profiles };
+    } catch (_) { /* fall back to the numbers from the design data */ }
+  }
+  return { title: d.title, profiles };
+}
+async function thingiverse(id: string): Promise<Found> {
+  const tok = Deno.env.get("THINGIVERSE_TOKEN"); if (!tok) throw new Error("Thingiverse needs a THINGIVERSE_TOKEN secret on the function");
+  const files = await getJson(`https://api.thingiverse.com/things/${id}/files`, { headers: { Authorization: "Bearer " + tok } });
+  const f = (files || []).find((x: any) => /\.(stl|3mf)$/i.test(x.name) && (x.size || 0) < MAX); if (!f) throw new Error("no STL/3MF file on this thing");
+  return { file: await getFile(f.direct_url || f.download_url || f.public_url) };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const { url } = await req.json(), u = new URL(url);
-    if (u.protocol !== "https:" || !OK.test(u.hostname)) return out({ error: "unsupported site" }, 400);
-    const r = await fetch(u, { headers: { "User-Agent": "Mozilla/5.0 (compatible; NozzlerBot/1.0)", "Accept-Language": "en" }, signal: AbortSignal.timeout(8000) });
-    if (!OK.test(new URL(r.url).hostname)) return out({ error: "redirected" }, 400);
-    const html = (await r.text()).slice(0, 3_000_000), res: Pr[] = [];
-    for (const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)) {
-      const s = m[1].trim();
-      if (s[0] !== "{" && s[0] !== "[") continue;
-      try { walk(JSON.parse(s), res); } catch (_) { /* not JSON */ }
-    }
-    const profiles = (res.length ? res : fromText(html)).filter((p, i, a) => a.findIndex((q) => q.w === p.w && q.t === p.t) === i).slice(0, 6);
-    const title = (html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)/i) || [])[1] || "";
-    return out({ title, profiles });
-  } catch (e) { return out({ error: String(e) }, 500); }
+    const { url } = await req.json(), u = new URL(url), h = u.hostname.replace(/^www\./, "");
+    let found: Found = {}, err = "";
+    try {
+      if (h.endsWith("printables.com")) { const m = u.pathname.match(/\/model\/(\d+)/); if (m) found = await printables(m[1]); }
+      else if (h.endsWith("makerworld.com")) { const m = u.pathname.match(/\/models\/(\d+)/); if (m) found = await makerworld(m[1]); }
+      else if (h.endsWith("thingiverse.com")) { const m = u.pathname.match(/thing:(\d+)/); if (m) found = await thingiverse(m[1]); }
+      else return json({ error: "This site is not supported (MakerWorld, Printables, Thingiverse)", profiles: [] });
+    } catch (e) { err = String((e as Error).message || e); }
+    if (found.file) return new Response(found.file, { headers: { ...cors, "Content-Type": "application/octet-stream" } });
+    return json({ title: found.title || "", profiles: found.profiles || [], error: err || (found.profiles?.length ? "" : "Could not find the model file or its print numbers") });
+  } catch (e) { return json({ error: String(e), profiles: [] }); }
 });
