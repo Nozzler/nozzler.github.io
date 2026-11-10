@@ -97,30 +97,26 @@ insert into app_secrets(key,value) values('notify_key',replace(gen_random_uuid()
 insert into app_secrets(key,value) values('notify_url','') on conflict do nothing;
 -- read the key with:  select value from app_secrets where key='notify_key';
 -- set the URL with:   update app_secrets set value='https://YOUR-PROJECT.supabase.co/functions/v1/notify' where key='notify_url';
+-- What was already mailed for each request. The Edge Function compares this with the current row, so a change is mailed exactly once
+-- even though both this trigger and the shop/admin pages ask it to.
+alter table requests add column if not exists notified jsonb;
+update requests set notified=jsonb_build_object('status',status,'paid',coalesce(paid,false),'quoted_price',quoted_price,'admin_note',admin_note) where notified is null;
+create or replace function claim_notify(rid uuid, snap jsonb, expected jsonb) returns boolean language plpgsql security definer set search_path=public as $$
+declare n int;
+begin update requests set notified=snap where id=rid and notified is not distinct from expected; get diagnostics n=row_count; return n>0; end $$;
+revoke all on function claim_notify(uuid,jsonb,jsonb) from public, anon, authenticated;
+grant execute on function claim_notify(uuid,jsonb,jsonb) to service_role;
 create or replace function notify_request() returns trigger language plpgsql security definer set search_path=public,extensions,net as $$
-declare u text; k text; p jsonb; t text[]; c profiles; cust boolean;
+declare u text; k text; who text;
 begin
   select value into u from app_secrets where key='notify_url'; select value into k from app_secrets where key='notify_key';
   if coalesce(u,'')='' then return new; end if;
-  select * into c from profiles where id=new.user_id;
-  cust:=auth.uid() is not null and not is_admin();   -- the customer themself changed it (accept / decline / cancel)
-  if tg_op='INSERT' then
-    select array_agg(email) into t from profiles where role='admin' and email is not null;
-    p:=jsonb_build_object('kind','new','to',t,'request',to_jsonb(new),'customer',jsonb_build_object('name',c.name,'email',c.email,'phone',c.phone));
-  elsif cust then
-    if new.status is not distinct from old.status or new.status not in('accepted','declined','cancelled') then return new; end if;
-    select array_agg(email) into t from profiles where role='admin' and email is not null;
-    p:=jsonb_build_object('kind','customer_action','to',t,'request',to_jsonb(new),'customer',jsonb_build_object('name',c.name,'email',c.email,'phone',c.phone));
-  else
-    if (new.status is not distinct from old.status) and (new.paid is not distinct from old.paid) and (new.quoted_price is not distinct from old.quoted_price) and (new.admin_note is not distinct from old.admin_note) then return new; end if;
-    if c.email is null or c.email_updates is false then return new; end if;
-    t:=array[c.email];
-    p:=jsonb_build_object('kind','update','to',t,'request',to_jsonb(new),'old',jsonb_build_object('status',old.status,'paid',old.paid,'quoted_price',old.quoted_price,'admin_note',old.admin_note),'customer',jsonb_build_object('name',c.name));
-  end if;
-  if t is null then return new; end if;
-  perform net.http_post(url:=u,headers:=jsonb_build_object('Content-Type','application/json','x-notify-key',coalesce(k,'')),body:=p);
+  who:=case when auth.uid() is not null and not is_admin() then 'customer' else 'admin' end;
+  perform net.http_post(url:=u,headers:=jsonb_build_object('Content-Type','application/json','x-notify-key',coalesce(k,'')),body:=jsonb_build_object('id',new.id,'actor',who));
   return new;
-exception when others then return new;   -- an email problem must never block an order
+exception when others then
+  raise warning 'notify_request failed: %',sqlerrm;   -- an email problem must never block an order (the page also asks the function directly)
+  return new;
 end $$;
 drop trigger if exists notify_req on requests;
-create trigger notify_req after insert or update on requests for each row execute function notify_request();
+create trigger notify_req after insert or update of status,paid,quoted_price,admin_note on requests for each row execute function notify_request();

@@ -2,6 +2,8 @@
 (()=>{const C=window.APP_CONFIG||{},on=C.SUPABASE_URL&&!/YOUR/.test(C.SUPABASE_URL)&&window.supabase,
 sb=on?supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{storageKey:"p3d-admin"}}):null;
 const M=()=>{try{return JSON.parse(localStorage.getItem("p3d_sync")||"{}")}catch(e){return{}}},setM=o=>localStorage.setItem("p3d_sync",JSON.stringify({...M(),...o}));
+/* ask the notify Edge Function to mail whatever changed on a request (it de-duplicates, so extra calls are harmless) */
+const ping=id=>{if(sb&&id)sb.functions.invoke("notify",{body:{id}}).then(r=>{if(r.error)console.warn("notify:",r.error.message||r.error)}).catch(e=>console.warn("notify:",e))};
 let RF="",REQ=[],PRO={},timer=0,cloud=false;const STM={queued:"in_queue",printing:"printing",ready:"ready",delivered:"delivered"};
 const chip=document.createElement("button");chip.className="btn g s";chip.onclick=()=>cloud?(chip.dataset.s=="conflict"?resolve():sync()):0;
 const so=document.createElement("button");so.className="btn g s";so.textContent="Sign out";so.onclick=async()=>{if(M().dirty&&!confirm("There are changes not synced to the cloud yet. Sign out and discard them?"))return;await sb.auth.signOut();["p3d2","p3d_sync"].forEach(k=>localStorage.removeItem(k));location.reload()};
@@ -32,7 +34,7 @@ async function resolve(){const{data}=await sb.from("app_state").select("*").eq("
 async function mirror(){for(const b of S.bills){const r=b[17]&&REQ.find(x=>x.id==b[17]);if(!r||["declined","cancelled"].includes(r.status))continue;const o=QD(b),pat={};
   const st=b[14]=="quote"?(r.status=="accepted"?"accepted":"quoted"):(STM[o.st]||r.status);if(st!=r.status)pat.status=st;if(+r.quoted_price!=b[5])pat.quoted_price=b[5];
   if(!!r.paid!=!!b[6])pat.paid=!!b[6];if(o.due&&r.due!=o.due)pat.due=o.due;if(r.bill_id!=b[0])pat.bill_id=b[0];
-  if(Object.keys(pat).length){pat.updated_at=new Date().toISOString();const{error}=await sb.from("requests").update(pat).eq("id",r.id);if(!error)Object.assign(r,pat)}}await mirrorWallet()}
+  if(Object.keys(pat).length){pat.updated_at=new Date().toISOString();const{error}=await sb.from("requests").update(pat).eq("id",r.id);if(!error){Object.assign(r,pat);ping(r.id)}}}await mirrorWallet()}
 /* publish each customer's credit/points and the voucher list so the shop can show and check them */
 let WS="";async function mirrorWallet(){const rows=Object.values(PRO).filter(p=>p.role!="admin"&&p.account_id).map(p=>{const a=find(p.account_id);return a?{user_id:p.id,account_id:p.account_id,points:a[1],credit:a[2],updated_at:new Date().toISOString()}:null}).filter(Boolean),
  vs=S.cards.filter(c=>T[c[1]]&&T[c[1]][2]=="voucher").map(c=>({serial:c[0],pct:T[c[1]][3],label:T[c[1]][1],unlimited:!!T[c[1]][4],used:!!c[4],updated_at:new Date().toISOString()})),
@@ -69,8 +71,8 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-a]"
   const p=data&&data.profiles&&data.profiles[0];if(error||!p)return toast("Couldn’t read weight and time from that page");
   Object.assign(Q,{w:p.w,t:Math.round(p.t||0)||Q.t,name:Q.name||data.title||""});toast("Filled in "+p.w+" g");render()}
  if(k=="rq"&&r){modal=reqModal(r);render();if((r.files||[]).length){const{data}=await sb.storage.from("uploads").createSignedUrls(r.files,3600);const h=$("#rf");if(h)h.innerHTML=(data||[]).map(f=>`<p><a href="${f.signedUrl}" target="_blank" rel="noopener">⬇ ${esc(f.path.split("/").pop().replace(/^\d+_/,""))}</a></p>`).join("")}}
- if(k=="rqm"&&r){const n=prompt("Message the customer will see on their order:",r.admin_note||"");if(n===null)return;const{error}=await sb.from("requests").update({admin_note:n||null,updated_at:new Date().toISOString()}).eq("id",id);if(!error){r.admin_note=n;toast("Message saved")}}
- if(k=="rqd"&&r){const n=prompt("Message to the customer (optional)");if(n===null)return;await sb.from("requests").update({status:"declined",admin_note:n||null,updated_at:new Date().toISOString()}).eq("id",id);modal="";loadReq();render()}
+ if(k=="rqm"&&r){const n=prompt("Message the customer will see on their order:",r.admin_note||"");if(n===null)return;const{error}=await sb.from("requests").update({admin_note:n||null,updated_at:new Date().toISOString()}).eq("id",id);if(!error){r.admin_note=n;ping(id);toast("Message saved")}}
+ if(k=="rqd"&&r){const n=prompt("Message to the customer (optional)");if(n===null)return;await sb.from("requests").update({status:"declined",admin_note:n||null,updated_at:new Date().toISOString()}).eq("id",id);ping(id);modal="";loadReq();render()}
  if(k=="rqs"&&r){const b=S.bills.find(x=>x[0]==r.bill_id);if(!b)return alert("Bill not found on this device. Sync first.");const m=b[11]||{},c=b[8]||{};
   Object.assign(Q,{name:b[1],acct:b[3],m:m.m||"PLA",w:m.w||0,t:m.t||0,s:m.s||0,c:m.c||0,mf:c.model_fee||0,df:c.design_fee||0,tip:b[7]||0,v:b[9]||"",rb:b[0],an:null,info:null});
   modal="";tab="Quote";location.hash="Quote";render();toast("Drop the sliced .gcode.3mf to get the actual price")}
@@ -79,7 +81,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-a]"
   modal="";tab="Quote";location.hash="Quote";render()}});
 document.addEventListener("click",e=>{if(!e.target.closest('[data-a="rb"]'))return;const b=S.bills.find(x=>x[0]==Q.rb);if(!b)return;const old=b[5],c=calc();
  b[4]=c.base;b[5]=c.due;b[8]={...c.b,total:c.base};b[11]={...(b[11]||{}),m:Q.m,w:Q.w,t:Q.t,s:Q.s,c:Q.c,fn:Q.fn||(b[11]||{}).fn||"",final:1};
- const r=b[17]&&REQ.find(x=>x.id==b[17]);if(cloud&&r&&c.due!=old){const n=prompt("Note to the customer about the final price (optional)");if(n)sb.from("requests").update({admin_note:n}).eq("id",r.id).then(()=>{r.admin_note=n})}
+ const r=b[17]&&REQ.find(x=>x.id==b[17]);if(cloud&&r&&c.due!=old){const n=prompt("Note to the customer about the final price (optional)");if(n)sb.from("requests").update({admin_note:n}).eq("id",r.id).then(()=>{r.admin_note=n;ping(r.id)})}
  Q.rb="";save();toast("Bill updated: "+E(c.due));tab="Bills";location.hash="Bills";modal=bm(b[0]);render()});
 let pt=0,pub="Not published yet";const MATS=Object.keys(PRICING.MAT),CL=()=>S.colors||(S.colors=PRICING.COLORS.map(c=>({n:c[0],h:c[1],on:true,m:[]})));
 function pubColors(now){if(!cloud){pub="Offline: saved on this device. Sign in to publish to the shop.";return}clearTimeout(pt);

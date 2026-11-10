@@ -31,7 +31,7 @@ Local test: `python3 -m http.server` in this folder, then open `/shop/` and `/ad
 If you already ran an older `schema.sql`, run the new one again; it is safe to re-run.
 
 ## Notes
-- Prices: edit `shared/pricing.js`. Estimates are rough (volume, strength and layer height); the final price is yours.
+- Prices: edit `shared/pricing.js`. Estimates are rough (volume, strength and layer height); the final price is yours. Customers only see a rounded range (about ±10%), never the rates or a breakdown. Bigger jobs get a small size discount in the estimate (about 6% at 500 g, capped at 12% from 5 kg; see `sizeFactor`). Note: the rates are still readable in the public `shared/pricing.js` source; for full secrecy the estimate would have to move to an Edge Function.
 - Admin sync stores the whole app state as one row (`app_state`), with a version check: if two devices edit at once you get a conflict prompt.
 - Customer sessions are kept in cookies (`p3d-shop_*`), admin session in localStorage.
 
@@ -59,20 +59,26 @@ Store name: **Nozzler** (by Sepp). Logo files are in `assets/` (`logo.svg` with 
 
 ## Auto-estimate weight and time
 - **Files:** STL, OBJ, 3MF (sliced `.gcode.3mf` gives exact grams and time) and `.gcode` are read in the browser (`shared/pricing.js`).
-- **Links:** the Edge Function `supabase/functions/model-info` downloads the model file (STL/3MF) from the link on the server and hands it to the browser, which measures it like an uploaded file; the file is also stored with the request. Deploy once: `supabase functions deploy model-info`. Printables works without a login; MakerWorld needs `supabase secrets set MAKERWORLD_TOKEN=...` to download the sliced .3mf (without it you get the numbers from the design data if available); Thingiverse needs `THINGIVERSE_TOKEN`. If nothing can be fetched the customer enters weight and time by hand. Admin > Quote has an *Auto-fill from the model link* button using the same function.
+- **Links:** the Edge Function `supabase/functions/model-info` downloads the model file (STL/3MF) from the link on the server and hands it to the browser, which measures it like an uploaded file; the file is also stored with the request. Deploy once: `supabase functions deploy model-info`. Printables works without a login; MakerWorld only uses print profiles made for the **Bambu Lab P1S** (other printers' profiles are ignored; if the page has none you enter weight and time by hand). `MAKERWORLD_TOKEN` (`supabase secrets set MAKERWORLD_TOKEN=...`) downloads the sliced .3mf of the first P1S profile (without it you get the numbers from the design data); Thingiverse needs `THINGIVERSE_TOKEN`. If nothing can be fetched the customer enters weight and time by hand. Admin > Quote has an *Auto-fill from the model link* button using the same function.
 
-## Emails (new orders, order updates, sign-up confirmation)
+## Emails (new orders, order updates)
+**No domain (e.g. GitHub Pages only)? Use Brevo:** sign up at brevo.com, then *Senders, domains & IPs > Senders > Add a sender* with an email address you own (they send a verification code), and *SMTP & API > API keys* to create a key. Use `supabase secrets set BREVO_API_KEY=xkeysib-... MAIL_FROM="Nozzler <that-verified-address>" SITE_URL=... NOTIFY_KEY=...` in step 3 below instead of the Resend key. Mail from a free address such as Gmail may land in customers' spam folders; a domain fixes that later.
 Supabase sends no real mail by itself, so everything below goes through one mail service. [Resend](https://resend.com) is assumed (free tier is enough): add and verify your domain there, then create an API key.
 
-**1. Order emails** (admins get a mail for every new request and when a customer accepts or cancels; customers get mails when the quote is ready, queued, printing, ready, delivered, paid, the price changes, or you send them a message; customers can switch them off under *Account*)
-1. Re-run `supabase/schema.sql`.
-2. Run in the SQL Editor: `select value from app_secrets where key='notify_key';` and copy the value.
-3. `supabase secrets set RESEND_API_KEY=re_xxx MAIL_FROM="Nozzler <orders@your-domain.com>" SITE_URL=https://YOU.github.io/YOUR-REPO NOTIFY_KEY=<the value from step 2>`
-4. `supabase functions deploy notify --no-verify-jwt`
-5. `update app_secrets set value='https://YOUR-PROJECT.supabase.co/functions/v1/notify' where key='notify_url';`
-Test: send a request from the shop; every account with role `admin` should get a mail. Errors show in Supabase > Edge Functions > notify > Logs.
+**1. Order emails** (admins get a mail for every new request and when a customer accepts, declines or cancels; customers get mails when the quote is ready, queued, printing, ready, delivered, paid, the price changes, or you send them a message; customers can switch them off under *Account*)
 
-**2. Sign-up confirmation mail** (this is why it never arrived: Supabase's built-in mailer only sends a couple of mails per hour and only to your own team addresses)
-1. Authentication > Emails > SMTP Settings > enable custom SMTP: host `smtp.resend.com`, port `465`, user `resend`, password = your Resend API key, sender = the same address as `MAIL_FROM`.
-2. Authentication > URL Configuration: *Site URL* = `https://YOU.github.io/YOUR-REPO/shop/`, and add `https://YOU.github.io/YOUR-REPO/shop/**` (and `http://localhost:8000/shop/**` for testing) to *Redirect URLs*. Without this the link in the mail points to the wrong page.
-3. Keep Providers > Email > *Confirm email* on. The link now brings the customer back to the shop already logged in; the login page has a *Send the email again* button.
+How it works: the shop and admin pages call the `notify` function right after they create or change a request, and a database trigger calls it too as a backup. The function reads the request, compares it with `requests.notified` (what was already mailed) and sends only what is new, so nothing is mailed twice. It works with just steps 1, 3 and 4; steps 2 and 5 (the trigger) are optional extras.
+1. Re-run `supabase/schema.sql` (adds `requests.notified` and `claim_notify`).
+2. *(trigger only)* Run in the SQL Editor: `select value from app_secrets where key='notify_key';` and copy the value.
+3. `supabase secrets set BREVO_API_KEY=xkeysib-... MAIL_FROM="Nozzler <orders@your-domain.com>" SITE_URL=https://YOU.github.io/YOUR-REPO NOTIFY_KEY=<the value from step 2 or any long random string>` (use `RESEND_API_KEY=re_xxx` for Resend instead of Brevo).
+4. `supabase functions deploy notify --no-verify-jwt`
+5. *(trigger only)* `update app_secrets set value='https://YOUR-PROJECT.supabase.co/functions/v1/notify' where key='notify_url';`
+Test: send a request from the shop; every account with role `admin` should get a mail. Errors show in Supabase > Edge Functions > notify > Logs (the function answers with the reason, also visible in the browser console as `notify:`).
+
+**2. Sign-up without email confirmation (recommended here)**
+Customers are not asked to confirm their email, so a failing confirmation mail can never block anyone.
+1. Supabase > Authentication > Providers > Email: turn **Confirm email** OFF. Sign-up then logs the customer in straight away (the shop already handles this).
+2. Accounts that got stuck unconfirmed: run `update auth.users set email_confirmed_at=now() where email_confirmed_at is null;`
+3. Custom SMTP is not needed for this. The order emails above use the Resend API directly.
+Trade-off: nobody checks that the address belongs to the person signing up, so a typo means that customer won't get order updates. Customers can fix their address by signing up again with the right one; you can also see and call them via the phone number required when accepting a quote.
+If you ever turn confirmation back on: set custom SMTP (host `smtp.resend.com`, port `465`, user `resend`, password = your Resend API key) and Authentication > URL Configuration > Site URL = your `/shop/` address plus the same URL with `**` under Redirect URLs.

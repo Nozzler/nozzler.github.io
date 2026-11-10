@@ -4,10 +4,14 @@ mult:7,machine:.5,support:.05,color:.25,rate:2.5,rush:25,min:3,
 STRENGTH:{light:{n:"Light · decorative (10% infill)",wall:.8,fill:.1},standard:{n:"Standard · everyday (20% infill)",wall:1.2,fill:.2},strong:{n:"Strong · functional (40% infill)",wall:1.6,fill:.4},max:{n:"Maximum · heavy duty (70% infill)",wall:2.4,fill:.7}}};
 P.COLORS=[["Black","#1a1a1a"],["White","#f5f5f5"],["Grey","#8a8d91"],["Red","#d32f2f"],["Orange","#f57c00"],["Yellow","#fbc02d"],["Green","#388e3c"],["Teal","#00897b"],["Blue","#1976d2"],["Navy","#1a237e"],["Purple","#7b1fa2"],["Pink","#ec407a"],["Brown","#6d4c41"],["Beige","#d7c4a3"],["Gold","#c9a227"],["Clear","#dfe9ee"]];
 const r=v=>Math.round(v*100)/100;
+/* Bigger jobs get a slightly lower price (estimate only): 0% up to 50 g, about 6% at 500 g, capped at 12% from 5 kg. */
+P.sizeFactor=w=>1-Math.min(.12,Math.max(0,.06*Math.log10(Math.max(w,1)/50)));
+/* Customers see a rounded range instead of an exact figure. */
+P.range=v=>{const lo=Math.max(P.min,Math.floor(v*.9)),hi=Math.max(lo+1,Math.ceil(v*1.1));return[lo,hi]};
 P.estimate=o=>{const s=P.STRENGTH[o.st]||P.STRENGTH.standard,k=(o.sc||100)/100,q=o.qty||1;let w=o.w,t=o.t,sp=0;
  if(!o.w){const v=o.vol*k**3*1000,sh=Math.min(v,o.area*k**2*s.wall),pv=sh+(v-sh)*s.fill;w=pv/1000*P.DENS[o.m];t=pv/(P.rate*(o.lh/.2))/60;sp=pv/1000*({yes:.12,auto:.05,no:0}[o.sup]||0)}
  else if(!t)t=w/P.DENS[o.m]*1000/P.rate/60;
- w*=q;t*=q;sp*=q;const b={material:P.MAT[o.m]*w/1000*P.mult,machine_time:P.machine*t/60,support_removal:P.support*sp,color_changes:P.color*Math.max(0,(o.cols||1)-1)*6*q};
+ w*=q;t*=q;sp*=q;const f=P.sizeFactor(w),b={material:P.MAT[o.m]*w/1000*P.mult*f,machine_time:P.machine*t/60*f,support_removal:P.support*sp,color_changes:P.color*Math.max(0,(o.cols||1)-1)*6*q};
  for(const x in b)b[x]=r(b[x]);const sub=Object.values(b).reduce((a,x)=>a+x,0),ru=o.rush?r(sub*P.rush/100):0;
  return{w:r(w),t:Math.round(t),sp:r(sp),b,rush:ru,total:r(Math.max(P.min,sub+ru))}};
 P.stats=tri=>{if(!tri.length)throw 0;let V=0,A=0,mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];
