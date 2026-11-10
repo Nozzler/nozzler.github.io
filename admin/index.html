@@ -67,12 +67,34 @@ const copy=async t=>{try{await navigator.clipboard.writeText(t);toast("Copied")}
 const tbl=(h,r,nc=[])=>`<div class="tw"><table><tr>${h.map((x,i)=>`<th class="${nc.includes(i)?"n":""}">${x}</th>`).join("")}</tr>${r.map(x=>`<tr ${x.a?`data-a="${x.a}"`:""}>${x.c.map((y,i)=>`<td class="${nc.includes(i)?"n":""}">${y}</td>`).join("")}</tr>`).join("")}</table></div>`;
 const find=a=>S.accounts.find(x=>x[0].toUpperCase()==String(a).toUpperCase());
 const vch=()=>S.cards.filter(c=>T[c[1]]&&T[c[1]][2]=="voucher"&&(T[c[1]][4]||!c[4]));
-function calc(){const b={material:MAT[Q.m]*Q.w/1000*Q.x,machine_time:PRICING.machine*Q.t/60,support_removal:PRICING.support*Q.s,color_changes:PRICING.color*Q.c,model_fee:+Q.mf||0,design_fee:+Q.df||0};
-  for(const k in b)b[k]=Math.round(b[k]*100)/100;const base=Math.round(Object.values(b).reduce((a,x)=>a+x,0)*100)/100;
-  const ac=find(Q.acct),v=S.cards.find(c=>c[0]==Q.v),pct=v?T[v[1]][3]:0;let rem=base,cr=0,pt=0,pv=0;
+function calc(){if(Q.plates&&Q.plates.length){
+  const b={material:0,machine_time:0,support_removal:0,color_changes:0,model_fee:+Q.mf||0,design_fee:+Q.df||0};
+  let totalW=0,totalT=0,totalS=0,totalC=0;
+  Q.plates.forEach(p=>{
+    const pm=MAT[p.m]?p.m:Q.m,pb={
+      material:rnd((MAT[pm]||25)*p.w/1000*Q.x),
+      machine_time:rnd(PRICING.machine*p.t/60),
+      support_removal:rnd(PRICING.support*(p.s||0)),
+      color_changes:rnd(PRICING.color*(p.c||0))
+    };
+    p.b=pb;p.base=rnd(Object.values(pb).reduce((a,x)=>a+x,0));
+    b.material=rnd(b.material+pb.material);b.machine_time=rnd(b.machine_time+pb.machine_time);
+    b.support_removal=rnd(b.support_removal+pb.support_removal);b.color_changes=rnd(b.color_changes+pb.color_changes);
+    totalW+=p.w;totalT+=p.t;totalS+=(p.s||0);totalC+=(p.c||0);
+  });
+  Q.w=Math.round(totalW*10)/10;Q.t=Math.round(totalT);Q.s=Math.round(totalS*100)/100;Q.c=totalC;
+  const base=rnd(Object.values(b).reduce((a,x)=>a+x,0)),ac=find(Q.acct),v=S.cards.find(c=>c[0]==Q.v),pct=v?T[v[1]][3]:0;
+  let rem=base,cr=0,pt=0,pv=0;
   if(ac&&Q.uc){cr=rnd(Math.min(ac[2],rem));rem=rnd(rem-cr)}
   if(ac&&Q.up&&rem>0){const rq=Q.pts===""||Q.pts==null?ac[1]:Math.max(0,Math.floor(+Q.pts||0));pt=Math.min(ac[1],Math.floor(rem*50),rq);pv=rnd(pt/50);rem=rnd(Math.max(rem-pv,0))}
-  const vd=rnd(rem*pct/100);rem=rnd(rem-vd);return{b,base,pct,cr,pt,pv,vd,sub:rem,due:rnd(rem+(+Q.tip||0))}}
+  const vd=rnd(rem*pct/100);rem=rnd(rem-vd);return{b,base,pct,cr,pt,pv,vd,sub:rem,due:rnd(rem+(+Q.tip||0))}
+ }
+ const b={material:MAT[Q.m]*Q.w/1000*Q.x,machine_time:PRICING.machine*Q.t/60,support_removal:PRICING.support*Q.s,color_changes:PRICING.color*Q.c,model_fee:+Q.mf||0,design_fee:+Q.df||0};
+ for(const k in b)b[k]=Math.round(b[k]*100)/100;const base=Math.round(Object.values(b).reduce((a,x)=>a+x,0)*100)/100;
+ const ac=find(Q.acct),v=S.cards.find(c=>c[0]==Q.v),pct=v?T[v[1]][3]:0;let rem=base,cr=0,pt=0,pv=0;
+ if(ac&&Q.uc){cr=rnd(Math.min(ac[2],rem));rem=rnd(rem-cr)}
+ if(ac&&Q.up&&rem>0){const rq=Q.pts===""||Q.pts==null?ac[1]:Math.max(0,Math.floor(+Q.pts||0));pt=Math.min(ac[1],Math.floor(rem*50),rq);pv=rnd(pt/50);rem=rnd(Math.max(rem-pv,0))}
+ const vd=rnd(rem*pct/100);rem=rnd(rem-vd);return{b,base,pct,cr,pt,pv,vd,sub:rem,due:rnd(rem+(+Q.tip||0))}}
 function dashBase(){const b=S.bills,paid=b.filter(x=>x[6]),rev=paid.reduce((a,x)=>a+x[5],0),open=b.filter(x=>!x[6]).reduce((a,x)=>a+x[5],0);
   const m={};b.forEach(x=>{const k=x[2].slice(0,7);m[k]=(m[k]||0)+x[5]});const ks=Object.keys(m).sort(),mx=Math.max(...ks.map(k=>m[k]),1);
   const bw=Math.min(46,560/ks.length-8),svg=`<svg viewBox="0 0 600 190" width="100%">${ks.map((k,i)=>{const h=m[k]/mx*130,x=20+i*(560/ks.length);return`<rect x="${x}" y="${150-h}" width="${bw}" height="${h}" rx="4" fill="var(--ac)"/><text x="${x+bw/2}" y="168" text-anchor="middle">${k.slice(2)}</text><text x="${x+bw/2}" y="${144-h}" text-anchor="middle">${Math.round(m[k])}</text>`}).join("")}</svg>`;
@@ -88,10 +110,39 @@ function cardsBase(){const r=S.cards.filter(x=>x.join(" ").toLowerCase().include
   return`<div class="card" style="margin-bottom:14px"><h2>Generate cards</h2><div class="f"><div><label>Type</label><select id="gt">${SEED.types.map(t=>`<option value="${t[0]}">${esc(t[1])}</option>`)}</select></div><div><label>Amount</label><input id="gn" type="number" min="1" max="50" value="1"></div><div><label>Account ID (account cards)</label><input id="ga" placeholder="e.g. LILY"></div></div><button class="btn" data-a="gen">Generate</button></div>
   <div class="row"><input id="q" placeholder="Search cards…" value="${esc(q)}"><span class="mu">${r.length} cards</span></div><div class="card">${tbl(["Serial","Type","Created","Account","Status"],r.map(x=>({a:"c:"+x[0],c:[`<span class="mono">${x[0]}</span>`,esc(x[2]),x[3],esc(x[5]||"–"),T[x[1]]&&T[x[1]][2]=="account"?`<span class="tag">account</span>`:T[x[1]]&&T[x[1]][4]?`<span class="ok">Unlimited</span>`:x[4]?`<span class="wn">Used</span>`:`<span class="ok">Active</span>`]})))}</div>`}
 function accts(){return`<div class="card" style="margin-bottom:14px"><h2>New account</h2><div class="row"><input id="na" placeholder="Account ID"><button class="btn" data-a="na">Create</button></div></div><div class="card">${tbl(["Account","Points","Balance","Bills","Created"],S.accounts.map(a=>({a:"a:"+a[0],c:[esc(a[0]),a[1],E(a[2]),S.bills.filter(b=>b[3].toUpperCase()==a[0].toUpperCase()).length,a[3]]})),[1,2,3])}</div>`}
+function platesCard(c){if(!Q.plates||!Q.plates.length)return"";
+  const pl=Q.plates,tot=Q.projectTotalPlates||pl.length;
+  const wn=tot>pl.length?`<div class="msg wn" style="margin:0 0 10px;font-size:13px">ℹ Detected Plate ${pl.map(p=>p.plateNum).join(", ")} (${pl.length} of ${tot} plates in Bambu Studio). Drop the other plate files (.gcode.3mf) here to add them to this quote.</div>`:"";
+  return`<div class="card" style="background:var(--bg);margin:0 0 14px;padding:12px;border:1px solid var(--bd)">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <b>Plates (${pl.length}${tot>pl.length?" of "+tot:""})</b>
+      <span class="mu">${Q.w.toFixed(1)} g · ${hm(Q.t)} · <b>${E(c.base)}</b></span>
+    </div>${wn}
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${pl.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;background:var(--sf);padding:6px 10px;border-radius:8px;border:1px solid var(--bd)">
+        ${p.th?`<img src="${p.th}" style="width:44px;height:44px;object-fit:contain;border-radius:6px;background:var(--bg);border:1px solid var(--bd);flex-shrink:0" alt="P${p.plateNum}">`:`<div style="width:44px;height:44px;display:grid;place-items:center;background:var(--bg);border-radius:6px;font-weight:700;font-size:12px;color:var(--mu);flex-shrink:0">P${p.plateNum}</div>`}
+        <div style="flex:1;min-width:0">
+          <div class="row" style="margin:0;gap:6px;align-items:baseline">
+            <span class="tag pr-high" style="font-weight:600">Plate ${p.plateNum}</span>
+            <b style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(p.name)}">${esc(p.name)}</b>
+          </div>
+          <div class="mu" style="font-size:12px;margin-top:2px">${p.w.toFixed(1)} g · ${hm(p.t)}${p.L?" · "+p.L+" layers":""}${p.s?" · "+p.s+" cm³ sup":""}${p.c?" · "+p.c+" cols":""}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <select data-pm="${i}" style="width:auto;padding:3px 6px;font-size:12px">
+            ${Object.keys(MAT).map(k=>`<option value="${k}" ${(p.m||Q.m)==k?"selected":""}>${k}</option>`).join("")}
+          </select>
+          <b style="font-size:13px;min-width:55px;text-align:right">${E(p.base||0)}</b>
+          <button class="btn g s" data-a="rmp:${i}" title="Remove plate" style="padding:2px 7px;font-size:12px">✕</button>
+        </div>
+      </div>`).join("")}
+    </div>
+  </div>`}
 function quoteBase(){const c=calc(),i=(k,l,t="number",s="")=>`<div><label>${l}</label><input data-q="${k}" type="${t}" ${t=="number"?'min="0" step="any"':""} value="${Q[k]}" ${s}></div>`;
-  return`<div class="two"><div class="card"><h2>Print quote</h2><div class="drop" id="dz">Drop a Bambu Studio .gcode.3mf (or .gcode) here for a full analysis<input id="gf" type="file" accept=".3mf,.gcode,.txt" hidden></div>
-  <div class="row" style="margin:0 0 12px"><button class="btn g s" data-a="al">Auto-fill weight &amp; time from the model link</button></div>
-  <div class="f"><div><label>Material</label><select data-q="m">${Object.keys(MAT).map(k=>`<option ${k==Q.m?"selected":""}>${k}</option>`)}</select></div>${i("w","Weight (g)")}${i("t","Print time (min)")}${i("s","Support (cm³)")}${i("c","Colour changes")}${i("x","Material multiplier")}${i("mf","Online model purchase (€)")}${i("df","Custom design (€)")}${i("ml","Model link / source","text")}</div></div>
+  return`<div class="two"><div class="card"><h2>Print quote</h2><div class="drop" id="dz">Drop Bambu Studio .gcode.3mf or .gcode here (single file or multiple plates)<input id="gf" type="file" accept=".3mf,.gcode,.txt" multiple hidden></div>
+  <div class="row" style="margin:0 0 12px"><button class="btn g s" data-a="al">Auto-fill weight &amp; time from the model link</button>${(Q.plates&&Q.plates.length)?`<button class="btn g s" data-a="addp">+ Add more plates</button><button class="btn g s" data-a="ca">Clear plates</button>`:""}</div>
+  ${platesCard(c)}
+  <div class="f"><div><label>Material ${Q.plates&&Q.plates.length?"(default)":""}</label><select data-q="m">${Object.keys(MAT).map(k=>`<option ${k==Q.m?"selected":""}>${k}</option>`)}</select></div>${i("w","Total weight (g)",undefined,Q.plates&&Q.plates.length?'title="Sum of all plates"':"")}${i("t","Total print time (min)",undefined,Q.plates&&Q.plates.length?'title="Sum of all plates"':"")}${i("s","Support (cm³)")}${i("c","Colour changes")}${i("x","Material multiplier")}${i("mf","Online model purchase (€)")}${i("df","Custom design (€)")}${i("ml","Model link / source","text")}</div></div>
   <div class="card"><h2>Bill</h2>${Object.keys(BK).map(k=>`<div class="bl"><span>${BK[k]}</span><div class="bar" style="width:${c.base?c.b[k]/c.base*100:0}%"></div><span class="n">${E(c.b[k])}</span></div>`).join("")}
   <div class="f" style="margin-top:12px">${i("name","Bill name","text")}<div><label>Account</label><select data-q="acct"><option value="">(none)</option>${S.accounts.map(a=>`<option ${a[0]==Q.acct?"selected":""}>${esc(a[0])}</option>`)}</select></div>
   <div><label>Voucher</label><select data-q="v"><option value="">(none)</option>${vch().map(v=>`<option value="${v[0]}" ${v[0]==Q.v?"selected":""}>${v[0]} · ${esc(v[2])}</option>`)}</select></div>${i("tip","Tip (€)")}</div>
@@ -117,7 +168,7 @@ function render(){$("#nav").innerHTML=TABS.map(t=>`<button class="${t==tab?"on":
   $("#md").innerHTML=modal?`<div class="ov" data-a="x"><div class="pn">${modal}</div></div>`:"";
   const i=$("#q");if(i)i.oninput=()=>{q=i.value;const p=i.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
   const f=$("#fl");if(f)f.onchange=()=>{fl=f.value;render()};const pe=$("#per");if(pe)pe.onchange=()=>{per=pe.value;render()};const sq=$("#so");if(sq)sq.onchange=()=>{so=sq.value;render()};
-  const d=$("#dz");if(d){d.onclick=()=>$("#gf").click();$("#gf").onchange=e=>e.target.files[0]&&loadG(e.target.files[0]);d.ondragover=e=>{e.preventDefault();d.classList.add("h")};d.ondragleave=()=>d.classList.remove("h");d.ondrop=e=>{e.preventDefault();loadG(e.dataTransfer.files[0])}}
+  const d=$("#dz");if(d){d.onclick=()=>$("#gf").click();$("#gf").onchange=e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)loadGFiles(fs,!!(Q.plates&&Q.plates.length))};d.ondragover=e=>{e.preventDefault();d.classList.add("h")};d.ondragleave=()=>d.classList.remove("h");d.ondrop=e=>{e.preventDefault();d.classList.remove("h");if(e.dataTransfer.files&&e.dataTransfer.files.length)loadGFiles([...e.dataTransfer.files],!!(Q.plates&&Q.plates.length))}}
   const j=$("#jf");if(j)j.onchange=async e=>{$("#tx").value=await e.target.files[0].text()}}
 document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!el)return;if(el.classList.contains("ov")&&e.target!=el)return;const a=el.dataset.a,[k,x,y]=a.split(":");
   if(a.startsWith("t_")){stopCam();tab=a.slice(2);q="";fl="all";location.hash=tab;modal="";return render()}
@@ -148,7 +199,9 @@ document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!
     if(k=="d"){const b=S.bills.find(b=>b[0]==x);if(b&&!b[6])undoDed(b);S.bills=S.bills.filter(b=>b[0]!=x)}if(k=="dc")S.cards=S.cards.filter(c=>c[0]!=x);if(k=="da")S.accounts=S.accounts.filter(c=>c[0]!=x);save();modal="";toast("Deleted");return render()}
   if(k=="bp"){const v=+$("#bp").value,ac=find(x);if(!(v>=5)||ac[2]<v)return toast("Need at least €5 and enough balance");ac[2]=rnd(ac[2]-v);ac[1]+=Math.floor(v/5)*25;TX(ac[0],"purchase_points",Math.floor(v/5)*25,-v,"Purchase "+E(v)+" from balance");save();toast("Points bought");modal=am(x);return render()}
   if(a=="rd"){const sr=$("#rv").value.trim().toUpperCase(),c=S.cards.find(c=>c[0]==sr),t=c&&T[c[1]];if(!c)return toast("Serial not found");if(t[2]=="account")return toast("Account card for "+c[5]);if(t[4])return toast(t[1]+": unlimited uses");if(c[4])return toast("Already used");c[4]=1;TX(c[5]||"","voucher_redeemed",0,0,t[1]+" "+c[0]);save();toast(t[1]+" redeemed");return render()}
-  if(a=="ca"){Q.an=null;Q.info=null;return render()}
+  if(a=="addp"){$("#gf").click();return}
+  if(k=="rmp"){if(Q.plates){Q.plates.splice(+x,1);if(!Q.plates.length){Q.plates=null;Q.projectTotalPlates=0;Q.an=null;Q.info=null}calc();render()}return}
+  if(a=="ca"){Q.plates=null;Q.projectTotalPlates=0;Q.an=null;Q.info=null;Q.w=40;Q.t=90;Q.s=0;Q.c=0;calc();return render()}
   if(k=="e3"){const L=x=="all"?S.cards.filter(c=>T[c[1]]):x=="new"?S.cards.filter(c=>T[c[1]]&&T[c[1]][2]=="voucher"&&!c[4]):x=="last"?lastGen:S.cards.filter(c=>c[0]==x);if(!L.length)return toast("No cards to export");toast("Building "+L.length+" file(s)…");return save3mf(L)}
   if(a=="cs")return startCam();if(a=="ce"){stopCam();return}if(a=="sl")return found($("#sm").value||"");
   if(a=="hc")return saveFile("transactions.csv","when,account,type,points,balance,note\n"+TXs().map(x=>x.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n"));
@@ -206,24 +259,92 @@ function anaG(T){const A={w:0,t:0,L:0,len:0,tc:0,nz:0,bd:0,lh:0,sup:0,ret:0,pd:0
   A.sup=s;return A}
 function merge(P){const A={...P[0],feat:{},plates:P.length};["w","t","L","len","tc","ret","pd","td","sup"].forEach(k=>A[k]=P.reduce((a,p)=>a+p[k],0));
   ["dx","dy","dz","nz","bd","lh"].forEach(k=>A[k]=Math.max(...P.map(p=>p[k])));P.forEach(p=>{for(const k in p.feat)A.feat[k]=(A.feat[k]||0)+p.feat[k]});return A}
-async function loadG(f){try{const I={};let tx=[];
-  if(/\.3mf$/i.test(f.name)){const z=await unzip(await f.arrayBuffer()),gs=Object.keys(z).filter(k=>/\.gcode$/i.test(k)).sort();
-    if(!gs.length)return toast("No G-code inside. Export the sliced file (.gcode.3mf) from Bambu Studio");
-    for(const k of gs)tx.push(dec(await z[k]()));const rd=async k=>z[k]?dec(await z[k]()):"";
-    I.si=si(await rd("Metadata/slice_info.config"));try{I.ps=JSON.parse(await rd("Metadata/project_settings.config"))}catch(e){}
-    const th=Object.keys(z).find(k=>/Metadata\/plate_\d+\.png$/.test(k));if(th){const b=await z[th]();I.th=await new Promise(r=>{const fr=new FileReader;fr.onload=()=>r(fr.result);fr.readAsDataURL(new Blob([b],{type:"image/png"}))})}}
-  else tx.push(await f.text());
-  const P=tx.map(anaG),A=merge(P),uf=(I.si?I.si.fs:[]).filter(x=>x.g>0).sort((a,b)=>b.g-a.g),mt=uf.length?uf[0].t:(A.ft[0]||Q.m);I.P=P;
-  if(!(A.w||A.t||A.len))return toast("No slicer data found in this file");
-  Object.assign(Q,{w:+A.w.toFixed(1),t:Math.round(A.t),s:+A.sup.toFixed(2),c:A.tc,m:MAT[mt]?mt:Q.m,name:Q.name||f.name.replace(/\.gcode(\.3mf)?$|\.3mf$/i,""),an:A,info:I,fn:f.name});toast("Analysed "+f.name);render()}catch(e){toast("Could not read that file")}}
+const cleanProjectName=s=>s.replace(/\.gcode(\.3mf)?$|\.3mf$/i,"").replace(/_plate_\d+$/i,"").replace(/_/g," ").trim();
+async function parseGFile(f){
+  if(/\.3mf$/i.test(f.name)){
+    const z=await unzip(await f.arrayBuffer()),rd=async k=>z[k]?dec(await z[k]()):"";
+    const siXml=await rd("Metadata/slice_info.config"),slicePlates=[];
+    if(siXml){
+      const pMatches=[...siXml.matchAll(/<plate>([\s\S]*?)<\/plate>/g)];
+      for(const pm of pMatches){
+        const px=pm[1],g=k=>+((px.match(new RegExp('key="'+k+'"\\s+value="([\\d.]+)"'))||[])[1]||0);
+        const idx=g("index")||(slicePlates.length+1),pred=g("prediction");
+        const wt=[...px.matchAll(/used_g="([\d.]+)"/g)].reduce((a,m)=>a+ +m[1],0)||g("weight");
+        const objs=[...px.matchAll(/<object[^>]+name="([^"]+)"/g)].map(m=>m[1]);
+        const fils=[...px.matchAll(/<filament[^>]+type="([^"]+)"[^>]*color="([^"]+)"(?:[^>]*used_g="([\d.]+)")?/g)].map(m=>({t:m[1],c:m[2],g:+m[3]||0}));
+        slicePlates.push({idx,wt,pred,t:pred/60,objs,fils});
+      }
+    }
+    const msXml=await rd("Metadata/model_settings.config");
+    let projectTotalPlates=msXml?[...msXml.matchAll(/<plate>([\s\S]*?)<\/plate>/g)].length:0;
+    let ps={};try{ps=JSON.parse(await rd("Metadata/project_settings.config"))}catch(e){}
+    const gs=Object.keys(z).filter(k=>/\.gcode$/i.test(k)).sort(),plates=[];
+    if(!gs.length&&slicePlates.length){
+      for(const sp of slicePlates){
+        const idx=sp.idx;
+        let th="";
+        const thKey=Object.keys(z).find(k=>new RegExp(`Metadata/(plate|top)_${idx}(_small)?\\.png$`,"i").test(k))||Object.keys(z).find(k=>/Metadata\/plate_\d+\.png$/i.test(k));
+        if(thKey){const b=await z[thKey]();th=await new Promise(r=>{const fr=new FileReader;fr.onload=()=>r(fr.result);fr.readAsDataURL(new Blob([b],{type:"image/png"}))})}
+        const objName=(sp.objs&&sp.objs.join(", "))||cleanProjectName(f.name)+(slicePlates.length>1?" · Plate "+idx:"");
+        const matType=(sp.fils&&sp.fils.find(x=>x.g>0)?.t)||Q.m;
+        plates.push({plateNum:idx,name:objName,file:f.name,m:MAT[matType]?matType:Q.m,w:+sp.wt.toFixed(1),t:Math.round(sp.t),s:0,c:0,L:0,th,ana:null,fils:sp.fils,ps,projectTotalPlates});
+      }
+      return{plates,projectTotalPlates,ps,si:si(siXml)};
+    }
+    if(!gs.length)throw new Error("No G-code inside. Export the sliced file (.gcode.3mf) from Bambu Studio");
+    for(const gk of gs){
+      const gText=dec(await z[gk]()),ana=anaG(gText);
+      const m=gk.match(/plate_(\d+)\.gcode/i)||f.name.match(/plate_(\d+)/i);
+      const idx=m?parseInt(m[1]):(slicePlates[plates.length]?.idx||plates.length+1);
+      let th="";
+      const thKey=Object.keys(z).find(k=>new RegExp(`Metadata/(plate|top)_${idx}(_small)?\\.png$`,"i").test(k))||Object.keys(z).find(k=>/Metadata\/plate_\d+\.png$/i.test(k));
+      if(thKey){const b=await z[thKey]();th=await new Promise(r=>{const fr=new FileReader;fr.onload=()=>r(fr.result);fr.readAsDataURL(new Blob([b],{type:"image/png"}))})}
+      const siPlate=slicePlates.find(p=>p.idx===idx)||slicePlates[plates.length]||null;
+      const objName=(siPlate?.objs&&siPlate.objs.join(", "))||cleanProjectName(f.name)+(gs.length>1?" · Plate "+idx:"");
+      const matType=(siPlate?.fils&&siPlate.fils.find(x=>x.g>0)?.t)||ana.ft[0]||Q.m;
+      plates.push({plateNum:idx,name:objName,file:f.name,m:MAT[matType]?matType:Q.m,w:+(ana.w||siPlate?.wt||0).toFixed(1),t:Math.round(ana.t||(siPlate?.pred?siPlate.pred/60:0)),s:+ana.sup.toFixed(2),c:ana.tc,L:ana.L,th,ana,fils:siPlate?.fils||[],ps,projectTotalPlates});
+    }
+    return{plates,projectTotalPlates,ps,si:si(siXml)};
+  }else{
+    const txt=await f.text(),ana=anaG(txt),m=f.name.match(/plate_(\d+)/i),idx=m?parseInt(m[1]):1,matType=ana.ft[0]||Q.m;
+    return{plates:[{plateNum:idx,name:cleanProjectName(f.name),file:f.name,m:MAT[matType]?matType:Q.m,w:+ana.w.toFixed(1),t:Math.round(ana.t),s:+ana.sup.toFixed(2),c:ana.tc,L:ana.L,th:"",ana,fils:[],ps:{},projectTotalPlates:1}],projectTotalPlates:1,ps:{},si:{fs:[],w:[],o:[]}};
+  }
+}
+async function loadGFiles(files,append){
+  try{
+    if(!files||!files.length)return;
+    const existing=append&&Array.isArray(Q.plates)?[...Q.plates]:[];
+    let totProj=0,lastPs={},lastSi=null;
+    for(const f of files){
+      const res=await parseGFile(f);
+      if(res.projectTotalPlates>totProj)totProj=res.projectTotalPlates;
+      lastPs=res.ps||lastPs;lastSi=res.si||lastSi;
+      for(const p of res.plates){
+        const dupIdx=existing.findIndex(x=>x.file==p.file&&x.plateNum==p.plateNum);
+        if(dupIdx>=0)existing[dupIdx]=p;else existing.push(p);
+      }
+    }
+    existing.sort((a,b)=>(a.plateNum||0)-(b.plateNum||0));
+    Q.plates=existing;Q.projectTotalPlates=Math.max(totProj,existing.length);
+    const anas=existing.map(p=>p.ana).filter(Boolean);
+    Q.an=anas.length?merge(anas):null;
+    const thPlate=existing.find(p=>p.th);
+    Q.info={th:thPlate?thPlate.th:"",ps:lastPs,si:lastSi,P:anas};
+    Q.fn=[...new Set(existing.map(p=>p.file))].join(", ");
+    if(!Q.name||Q.name=="Untitled")Q.name=cleanProjectName(existing[0].file);
+    calc();toast(`Loaded ${existing.length} plate${existing.length>1?"s":""}`);render();
+  }catch(e){toast(e&&e.message||"Could not read file");console.error(e)}
+}
+const loadG=f=>loadGFiles([f],false);
 function anCard(){const A=Q.an;if(!A)return"";const I=Q.info||{},ps=I.ps||{},sf=I.si||{fs:[],w:[],o:[]},fs=sf.fs.filter(x=>x.g>0),c=calc(),h=m=>Math.floor(m/60)+"h "+Math.round(m%60)+"m",ft=Object.entries(A.feat).sort((a,b)=>b[1]-a[1]),tot=ft.reduce((a,x)=>a+x[1],0)||1,
   k=[["Weight",A.w.toFixed(1)+" g"],["Print time",h(A.t)],["Layers",A.L],["Layer height",A.lh+" mm"],["Size X×Y×Z",A.dx?`${A.dx.toFixed(0)}×${A.dy.toFixed(0)}×${A.dz.toFixed(0)} mm`:"–"],["Filament",(A.len/1000).toFixed(2)+" m"],["Support",A.sup.toFixed(2)+" cm³"],["Tool changes",A.tc],["Retractions",A.ret],["Nozzle / bed",A.nz?`${A.nz}° / ${A.bd}°`:"–"],["Print path",(A.pd/1000).toFixed(1)+" m"],["Travel",(A.td/1000).toFixed(1)+" m"],["Time / layer",A.L?Math.round(A.t*60/A.L)+" s":"–"],["Price / gram",A.w?E(c.base/A.w):"–"],["Price / hour",A.t?E(c.base/(A.t/60)):"–"]];
   const pr=[ps.printer_settings_id,ps.print_settings_id,ps.nozzle_diameter&&"nozzle "+[].concat(ps.nozzle_diameter)[0]+" mm"].filter(Boolean).join(" · ");
-  return`<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Analysis · ${esc(Q.fn)}</h2><button class="btn g s" data-a="ca">Clear</button></div>${pr?`<p class="mu">${esc(pr)}${A.plates>1?" · "+A.plates+" plates":""}</p>`:""}
+  const pls=Q.plates||[];
+  return`<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Analysis · ${esc(Q.fn)}</h2><button class="btn g s" data-a="ca">Clear</button></div>${pr?`<p class="mu">${esc(pr)}${pls.length>1?" · "+pls.length+" plates":""}</p>`:""}
   <div style="display:flex;gap:14px;flex-wrap:wrap">${I.th?`<img src="${I.th}" width="170" height="170" style="border-radius:8px;object-fit:contain;background:var(--bg)" alt="Plate preview">`:""}<div class="grid" style="flex:1;margin:0;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">${k.map(x=>`<div class="kpi"><small>${x[0]}</small><b style="font-size:18px">${x[1]}</b></div>`).join("")}</div></div>
   <div class="two" style="margin:14px 0 0"><div><h2>Where the filament goes</h2>${ft.slice(0,9).map(x=>`<div class="bl"><span>${esc(x[0])}</span><div class="bar" style="width:${x[1]/tot*100}%"></div><span class="n">${(x[1]/tot*100).toFixed(0)}%</span></div>`).join("")}</div>
   <div><h2>Filaments</h2>${fs.length?tbl(["","Type","Used"],fs.map(x=>({c:[`<span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid var(--bd);background:${esc((x.c||"#888").slice(0,7))}"></span>`,esc(x.t),`${x.g.toFixed(1)} g · ${x.m.toFixed(2)} m`]}))):'<span class="mu">No slice info in file</span>'}${sf.o.length?`<p class="mu">Objects: ${esc(sf.o.join(", "))}</p>`:""}${sf.w.length?`<p class="wn">⚠ ${esc(sf.w.join("; "))}</p>`:""}</div></div>
-  ${A.plates>1?tbl(["Plate","Weight","Time","Layers"],I.P.map((p,i)=>({c:[i+1,p.w.toFixed(1)+" g",h(p.t),p.L]})),[1,2,3]):""}</div>`}
+  ${pls.length>1?tbl(["Plate","Object","Material","Weight","Time","Layers"],pls.map(p=>({c:[`Plate ${p.plateNum}`,esc(p.name),esc(p.m||Q.m),p.w.toFixed(1)+" g",h(p.t),p.L||"-"]})),[3,4]):""}</div>`}
 const CF=()=>(S.cfg=Object.assign({shop:"3D Print Desk",foot:"",lang:"en",vat:0,od:14,pd:16},S.cfg)),hm=m=>Math.floor(m/60)+"h "+Math.round(m%60)+"m",ageD=d=>Math.floor((Date.now()-new Date(d))/864e5);
 let lastGen=[],per="all",rcImg="",rcFor="",lastBill="";
 const ageTxt=d=>{const n=ageD(d);return n>CF().od?` · ${n}d overdue`:""};
@@ -235,6 +356,7 @@ function bc(code){const s="*"+String(code).toUpperCase().replace(/[^0-9A-Z-]/g,"
 function rcRows(b){const l=LB[CF().lang]||LB.en,c=b[8]||{},mt=b[11]||{},tip=b[7]||0,vt=Math.max(0,rnd(b[4]-(b[5]-tip)-((b[15]||{}).cr||0)-((b[15]||{}).pv||0))),vc=S.cards.find(x=>x[0]==b[9]),ac=find(b[3]),R=[["h",CF().shop],["c",b[14]=="quote"?LB2[CF().lang=="nl"?"nl":"en"].q:l.rc],["bar",b[0]],["sep"],["kv",l.bill,b[0]],["kv",l.name,b[1]],["kv",l.date,b[2]],["kv",l.acct,b[3]||"-"]];QRows(R,b);
   const det=[[l.mat,mt.m],[l.wt,mt.w&&mt.w+" g"],[l.tm,mt.t&&hm(mt.t)],[l.sup,mt.s&&mt.s+" cm³"],[l.cc,mt.c],[l.file,mt.fn]].filter(x=>x[1]);
   if(det.length){R.push(["sep"],["t",l.det]);det.forEach(x=>R.push(["kv",x[0],String(x[1])]))}
+  if(mt.plates&&mt.plates.length>1){R.push(["sep"],["t",`PLATES (${mt.plates.length})`]);mt.plates.forEach(p=>R.push(["kv",`Plate ${p.plateNum}: ${(p.name||"").slice(0,18)}`,[p.w?p.w+"g":"",p.m||"",p.base?E(p.base):""].filter(Boolean).join(" · ")]))}
   const ks=Object.keys(BK).filter(k=>c[k]!=null);if(ks.length){R.push(["sep"],["t",l.cost]);ks.forEach(k=>R.push(["kv",l[k],E(c[k])]))}
   const dd=b[15]||{};R.push(["sep"],["kv",l.base,E(b[4])]);if(dd.cr>0)R.push(["kv",l.cr,"-"+E(dd.cr)]);if(dd.pt>0)R.push(["kv",l.pu+" ("+dd.pt+")","-"+E(dd.pv)]);
   if(vt>0||b[9])R.push(["kv",l.disc+(vc&&T[vc[1]]?" "+T[vc[1]][1]:""),"-"+E(vt)]);
@@ -334,7 +456,7 @@ function undoDed(b){const d=b[15],ac=find(b[3]);if(!d||!d.ap||!ac)return;
 function autoPay(b){const ac=find(b[3]),d=b[15];if(ac&&!b[10]){b[10]=Math.floor(b[4]/5)*25;ac[1]+=b[10];TX(ac[0],"points_reward",b[10],0,"Bill "+b[0]+" paid")}
   b[6]=1;b[12]=d&&(d.cr||d.pt)?"credit/points":"voucher";b[13]=today();TX(b[3],"bill_paid",0,0,"Bill "+b[0]+" "+E(b[5])+" fully covered")}
 function makeBill(quote){const c=calc(),id=newId(),v=S.cards.find(x=>x[0]==Q.v),
-  b=[id,Q.name||"Untitled",today(),Q.acct||"",c.base,c.due,0,+Q.tip||0,{...c.b,total:c.base},Q.v,0,{m:Q.m,w:Q.w,t:Q.t,s:Q.s,c:Q.c,fn:Q.fn||"",ml:Q.ml||""},"",""
+  b=[id,Q.name||"Untitled",today(),Q.acct||"",c.base,c.due,0,+Q.tip||0,{...c.b,total:c.base},Q.v,0,{m:Q.m,w:Q.w,t:Q.t,s:Q.s,c:Q.c,fn:Q.fn||"",ml:Q.ml||"",plates:(Q.plates||[]).map(p=>({plateNum:p.plateNum,name:p.name,m:p.m,w:p.w,t:p.t,s:p.s,c:p.c,base:p.base}))},"",""
   ,quote?"quote":"",c.cr||c.pt?{cr:c.cr,pt:c.pt,pv:c.pv,ap:0}:null,{st:quote?"":"queued",pr:Q.pr,due:Q.dd,tm:Q.tm,dm:Q.dm,loc:Q.dl,note:"",o:nextOrd(),dd:""},Q.rid||""];
   S.bills.push(b);TX(Q.acct,"quote_created",0,0,(quote?"Quote ":"Bill ")+id+" "+E(c.due));
   if(!quote){applyDed(b);if(v&&!T[v[1]][4])v[4]=1;if(c.sub<=0)autoPay(b)}
@@ -354,6 +476,7 @@ function cards(){return redeemBox()+cardsBase()}
 function data(){return settings()+dataBase()}
 document.addEventListener("change",e=>{const t=e.target,d=t.dataset,v=t.type=="checkbox"?t.checked:t.type=="number"?(t.value===""?"":+t.value):t.value;
   if(d.q){Q[d.q]=v;render()}
+  else if(d.pm!=null){if(Q.plates&&Q.plates[+d.pm]){Q.plates[+d.pm].m=v;calc();render()}}
   else if(d.qx){QF[d.qx]=v;render()}
   else if(d.qf){const b=S.bills.find(x=>x[0]==d.qi);if(!b)return;const o=QE(b);if(d.qf=="st"){const was=o.st;o.st=v;if(v&&!was)o.o=nextOrd();o.dd=v=="delivered"?today():"";TX(b[3],"job_status",0,0,"Job "+b[0]+" → "+(STA[v]||"Not in queue"))}else o[d.qf]=v;save();toast("Saved");modal=bm(d.qi);render()}
   else if(d.c){CF();S.cfg[d.c]=v;save();toast("Saved");if(modal&&modal.includes('class="pw"'))modal=bm(lastBill);render()}

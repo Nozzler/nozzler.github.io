@@ -27,8 +27,15 @@ P.unzip=async buf=>{const d=new DataView(buf),u=new Uint8Array(buf);let e=buf.by
  for(let i=0;i<n;i++){const m=d.getUint16(p+10,true),cs=d.getUint32(p+20,true),nl=d.getUint16(p+28,true),xl=d.getUint16(p+30,true),cl=d.getUint16(p+32,true),lo=d.getUint32(p+42,true),nm=new TextDecoder().decode(u.subarray(p+46,p+46+nl));
   o[nm]=async()=>{const s=lo+30+d.getUint16(lo+26,true)+d.getUint16(lo+28,true),raw=u.subarray(s,s+cs);if(!m)return raw;return new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer())};p+=46+nl+xl+cl}return o};
 P.threemf=async buf=>{const z=await P.unzip(buf),dec=u=>new TextDecoder().decode(u);
- if(z["Metadata/slice_info.config"]){const x=dec(await z["Metadata/slice_info.config"]()),g=k=>+((x.match(new RegExp('key="'+k+'"\\s+value="([\\d.]+)"'))||[])[1]||0),
-  w=[...x.matchAll(/used_g="([\d.]+)"/g)].reduce((a,m)=>a+ +m[1],0)||g("weight");if(w)return{w,t:g("prediction")/60,sliced:1}}
+ if(z["Metadata/slice_info.config"]){const x=dec(await z["Metadata/slice_info.config"]()),pMatches=[...x.matchAll(/<plate>([\s\S]*?)<\/plate>/g)],plates=[];
+  let totalW=0,totalT=0;
+  if(pMatches.length){for(const pm of pMatches){const px=pm[1],g=k=>+((px.match(new RegExp('key="'+k+'"\\s+value="([\\d.]+)"'))||[])[1]||0),
+   pw=[...px.matchAll(/used_g="([\d.]+)"/g)].reduce((a,m)=>a+ +m[1],0)||g("weight"),pt=g("prediction")/60,idx=g("index")||(plates.length+1),
+   om=px.match(/name="([^"]+)"/),nm=om?om[1]:"Plate "+idx,fm=px.match(/type="([^"]+)"/),mat=fm?fm[1]:"PLA";
+   if(pw||pt){plates.push({idx,w:pw,t:pt,name:nm,m:mat});totalW+=pw;totalT+=pt}}}
+  else{const g=k=>+((x.match(new RegExp('key="'+k+'"\\s+value="([\\d.]+)"'))||[])[1]||0);
+   totalW=[...x.matchAll(/used_g="([\d.]+)"/g)].reduce((a,m)=>a+ +m[1],0)||g("weight");totalT=g("prediction")/60;}
+  if(totalW||totalT)return{w:totalW,t:totalT,plates,sliced:1}}
  const tri=[];for(const k of Object.keys(z).filter(k=>/\.model$/i.test(k))){const x=dec(await z[k]());
   for(const m of x.matchAll(/<mesh>([\s\S]*?)<\/mesh>/g)){const v=[...m[1].matchAll(/<vertex x="([^"]+)" y="([^"]+)" z="([^"]+)"/g)].map(a=>[+a[1],+a[2],+a[3]]);
    for(const t of m[1].matchAll(/<triangle v1="(\d+)" v2="(\d+)" v3="(\d+)"/g))tri.push([...v[t[1]],...v[t[2]],...v[t[3]]])}}
