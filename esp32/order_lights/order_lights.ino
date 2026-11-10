@@ -3,11 +3,11 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
-const char* WIFI_SSID    = "YOUR_WIFI";
-const char* WIFI_PASS    = "YOUR_PASSWORD";
-const char* SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-const char* ANON_KEY     = "YOUR-ANON-KEY";
-const char* DEVICE_KEY   = "YOUR-DEVICE-KEY";   // select value from app_secrets where key='device_key';
+const char* WIFI_SSID    = "Ziggo3879023";
+const char* WIFI_PASS    = "7zpfxnuaJneewbee";
+const char* SUPABASE_URL = "https://sfjsyybuwiycgceyfvmc.supabase.co";
+const char* ANON_KEY     = "sb_publishable_B8e-sIyrP5tqV0jyrxhJEQ_ZpEMl9Oy";
+const char* DEVICE_KEY   = "a18eea7971684cadaf426f5adc482282";   // select value from app_secrets where key='device_key';
 const int   SOON_DAYS    = 2;                    // "due soon" window
 const unsigned long POLL_MS = 5UL * 60UL * 1000UL;
 const unsigned long RETRY_MS = 30UL * 1000UL;

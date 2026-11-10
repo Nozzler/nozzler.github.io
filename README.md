@@ -60,3 +60,19 @@ Store name: **Nozzler** (by Sepp). Logo files are in `assets/` (`logo.svg` with 
 ## Auto-estimate weight and time
 - **Files:** STL, OBJ, 3MF (sliced `.gcode.3mf` gives exact grams and time) and `.gcode` are read in the browser (`shared/pricing.js`).
 - **Links:** the Edge Function `supabase/functions/model-info` downloads the model file (STL/3MF) from the link on the server and hands it to the browser, which measures it like an uploaded file; the file is also stored with the request. Deploy once: `supabase functions deploy model-info`. Printables works without a login; MakerWorld needs `supabase secrets set MAKERWORLD_TOKEN=...` to download the sliced .3mf (without it you get the numbers from the design data if available); Thingiverse needs `THINGIVERSE_TOKEN`. If nothing can be fetched the customer enters weight and time by hand. Admin > Quote has an *Auto-fill from the model link* button using the same function.
+
+## Emails (new orders, order updates, sign-up confirmation)
+Supabase sends no real mail by itself, so everything below goes through one mail service. [Resend](https://resend.com) is assumed (free tier is enough): add and verify your domain there, then create an API key.
+
+**1. Order emails** (admins get a mail for every new request and when a customer accepts or cancels; customers get mails when the quote is ready, queued, printing, ready, delivered, paid, the price changes, or you send them a message; customers can switch them off under *Account*)
+1. Re-run `supabase/schema.sql`.
+2. Run in the SQL Editor: `select value from app_secrets where key='notify_key';` and copy the value.
+3. `supabase secrets set RESEND_API_KEY=re_xxx MAIL_FROM="Nozzler <orders@your-domain.com>" SITE_URL=https://YOU.github.io/YOUR-REPO NOTIFY_KEY=<the value from step 2>`
+4. `supabase functions deploy notify --no-verify-jwt`
+5. `update app_secrets set value='https://YOUR-PROJECT.supabase.co/functions/v1/notify' where key='notify_url';`
+Test: send a request from the shop; every account with role `admin` should get a mail. Errors show in Supabase > Edge Functions > notify > Logs.
+
+**2. Sign-up confirmation mail** (this is why it never arrived: Supabase's built-in mailer only sends a couple of mails per hour and only to your own team addresses)
+1. Authentication > Emails > SMTP Settings > enable custom SMTP: host `smtp.resend.com`, port `465`, user `resend`, password = your Resend API key, sender = the same address as `MAIL_FROM`.
+2. Authentication > URL Configuration: *Site URL* = `https://YOU.github.io/YOUR-REPO/shop/`, and add `https://YOU.github.io/YOUR-REPO/shop/**` (and `http://localhost:8000/shop/**` for testing) to *Redirect URLs*. Without this the link in the mail points to the wrong page.
+3. Keep Providers > Email > *Confirm email* on. The link now brings the customer back to the shop already logged in; the login page has a *Send the email again* button.

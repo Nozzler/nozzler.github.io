@@ -88,3 +88,39 @@ begin select * into v from vouchers where serial=upper(trim(code)) and (unlimite
   if not found then raise exception 'Voucher not found or already used'; end if;
   return json_build_object('serial',v.serial,'pct',v.pct,'label',v.label); end $$;
 revoke all on function check_voucher(text) from public; grant execute on function check_voucher(text) to authenticated;
+
+-- ===== Order emails =====
+-- Needs the Edge Function `notify` (see README, "Emails"). The trigger posts to it with pg_net; nothing is sent until notify_url is filled in.
+create extension if not exists pg_net with schema extensions;
+alter table profiles add column if not exists email_updates boolean not null default true;
+insert into app_secrets(key,value) values('notify_key',replace(gen_random_uuid()::text,'-','')) on conflict do nothing;
+insert into app_secrets(key,value) values('notify_url','') on conflict do nothing;
+-- read the key with:  select value from app_secrets where key='notify_key';
+-- set the URL with:   update app_secrets set value='https://YOUR-PROJECT.supabase.co/functions/v1/notify' where key='notify_url';
+create or replace function notify_request() returns trigger language plpgsql security definer set search_path=public,extensions,net as $$
+declare u text; k text; p jsonb; t text[]; c profiles; cust boolean;
+begin
+  select value into u from app_secrets where key='notify_url'; select value into k from app_secrets where key='notify_key';
+  if coalesce(u,'')='' then return new; end if;
+  select * into c from profiles where id=new.user_id;
+  cust:=auth.uid() is not null and not is_admin();   -- the customer themself changed it (accept / decline / cancel)
+  if tg_op='INSERT' then
+    select array_agg(email) into t from profiles where role='admin' and email is not null;
+    p:=jsonb_build_object('kind','new','to',t,'request',to_jsonb(new),'customer',jsonb_build_object('name',c.name,'email',c.email,'phone',c.phone));
+  elsif cust then
+    if new.status is not distinct from old.status or new.status not in('accepted','declined','cancelled') then return new; end if;
+    select array_agg(email) into t from profiles where role='admin' and email is not null;
+    p:=jsonb_build_object('kind','customer_action','to',t,'request',to_jsonb(new),'customer',jsonb_build_object('name',c.name,'email',c.email,'phone',c.phone));
+  else
+    if (new.status is not distinct from old.status) and (new.paid is not distinct from old.paid) and (new.quoted_price is not distinct from old.quoted_price) and (new.admin_note is not distinct from old.admin_note) then return new; end if;
+    if c.email is null or c.email_updates is false then return new; end if;
+    t:=array[c.email];
+    p:=jsonb_build_object('kind','update','to',t,'request',to_jsonb(new),'old',jsonb_build_object('status',old.status,'paid',old.paid,'quoted_price',old.quoted_price,'admin_note',old.admin_note),'customer',jsonb_build_object('name',c.name));
+  end if;
+  if t is null then return new; end if;
+  perform net.http_post(url:=u,headers:=jsonb_build_object('Content-Type','application/json','x-notify-key',coalesce(k,'')),body:=p);
+  return new;
+exception when others then return new;   -- an email problem must never block an order
+end $$;
+drop trigger if exists notify_req on requests;
+create trigger notify_req after insert or update on requests for each row execute function notify_request();
