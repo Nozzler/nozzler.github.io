@@ -29,4 +29,10 @@ P.threemf=async buf=>{const z=await P.unzip(buf),dec=u=>new TextDecoder().decode
   for(const m of x.matchAll(/<mesh>([\s\S]*?)<\/mesh>/g)){const v=[...m[1].matchAll(/<vertex x="([^"]+)" y="([^"]+)" z="([^"]+)"/g)].map(a=>[+a[1],+a[2],+a[3]]);
    for(const t of m[1].matchAll(/<triangle v1="(\d+)" v2="(\d+)" v3="(\d+)"/g))tri.push([...v[t[1]],...v[t[2]],...v[t[3]]])}}
  return P.stats(tri)};
+P.gcode=t=>{const L=s=>(t.match(s)||[])[1],num=s=>+(L(s)||0),fg=L(/filament used \[g\]\s*=\s*([\d.,\s]+)/i),
+ w=num(/total filament weight \[g\]\s*:\s*([\d.]+)/i)||(fg?fg.split(",").reduce((a,x)=>a+(+x||0),0):0),
+ ts=L(/(?:total estimated time|estimated printing time[^=\n]*)\s*[:=]\s*([^\n;]+)/i),k=u=>+((ts||"").match(new RegExp("(\\d+(?:\\.\\d+)?)\\s*"+u))||[])[1]||0,
+ m=ts?k("d")*1440+k("h")*60+k("m")+k("s")/60:num(/;TIME:(\d+)/)/60;if(!w||!m)throw 0;return{w,t:m,sliced:1}};
+P.obj=t=>{const v=[],tri=[];for(const l of t.split("\n")){if(l[0]=="v"&&l[1]==" ")v.push(l.trim().split(/\s+/).slice(1,4).map(Number));
+ else if(l[0]=="f"&&l[1]==" "){const i=l.trim().split(/\s+/).slice(1).map(x=>{const n=parseInt(x);return n<0?v.length+n:n-1});for(let k=1;k+1<i.length;k++)tri.push([...v[i[0]],...v[i[k]],...v[i[k+1]]])}}return P.stats(tri)};
 })();

@@ -72,3 +72,19 @@ grant execute on function device_status(text,int) to anon, authenticated;
 
 -- After creating YOUR account (via the shop sign-up), make it admin:
 -- update profiles set role='admin' where email='you@example.com';
+
+-- Wallet (credit + points) and vouchers. The admin app mirrors them here; customers can only read their own wallet
+-- and check ONE voucher code at a time (they can never list vouchers). Balances are changed only by the admin app.
+create table if not exists wallets(user_id uuid primary key references auth.users on delete cascade,account_id text,points int not null default 0,credit numeric not null default 0,updated_at timestamptz default now());
+alter table wallets enable row level security;
+drop policy if exists w_sel on wallets; create policy w_sel on wallets for select using(user_id=auth.uid() or is_admin());
+drop policy if exists w_adm on wallets; create policy w_adm on wallets for all using(is_admin()) with check(is_admin());
+create table if not exists vouchers(serial text primary key,pct numeric not null,label text,unlimited boolean default false,used boolean default false,updated_at timestamptz default now());
+alter table vouchers enable row level security;
+drop policy if exists v_adm on vouchers; create policy v_adm on vouchers for all using(is_admin()) with check(is_admin());
+create or replace function check_voucher(code text) returns json language plpgsql security definer set search_path=public as $$
+declare v vouchers;
+begin select * into v from vouchers where serial=upper(trim(code)) and (unlimited or not used);
+  if not found then raise exception 'Voucher not found or already used'; end if;
+  return json_build_object('serial',v.serial,'pct',v.pct,'label',v.label); end $$;
+revoke all on function check_voucher(text) from public; grant execute on function check_voucher(text) to authenticated;

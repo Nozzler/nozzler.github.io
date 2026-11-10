@@ -51,3 +51,12 @@ Admin > Colors lists the colours you have (on/off, optionally per material, add 
 
 ## Brand
 Store name: **Nozzler** (by Sepp). Logo files are in `assets/` (`logo.svg` with wordmark, `icon.svg` for favicon/app icon). The shop header and favicon use them.
+
+## Vouchers, credit and points (customer side)
+- The shop's **Get a price** page has a *Credit, points & vouchers* card: tick *Use my credit*, *Use my points* (optionally an amount; 50 pts = €1) and/or type a voucher code. The estimate shows credit, then points, then the voucher % (same order as the admin Quote tab) and what the customer pays. *Account* shows their balance.
+- Nothing is deducted by the customer. The choice travels with the request (`options.use`); **Prepare quote** pre-ticks credit, points and the voucher on the Quote tab, and the existing bill logic deducts and marks the voucher used when the quote is confirmed.
+- The admin app publishes each account's credit/points to table `wallets` (matched by `account_id`) and the voucher list to `vouchers` whenever it syncs. Customers can read only their own wallet and check one code via `check_voucher()`. Re-run `schema.sql`, then open Admin once so the first sync fills these tables.
+
+## Auto-estimate weight and time
+- **Files:** STL, OBJ, 3MF (sliced `.gcode.3mf` gives exact grams and time) and `.gcode` are read in the browser (`shared/pricing.js`).
+- **Links:** MakerWorld / Printables / Thingiverse / Cults pages are read by the Edge Function `supabase/functions/model-info` (browsers can't fetch them directly). Deploy once: `supabase functions deploy model-info`. It looks for print-profile data in the page, falls back to visible text, and the customer can always correct the numbers. Admin > Quote has an *Auto-fill from the model link* button using the same function.
