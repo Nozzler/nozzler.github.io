@@ -1,44 +1,53 @@
-<div align="center">
-  <img src="./favicon.svg" width="72" height="72" alt="Hexfall logo">
-  <h1>Hexfall</h1>
-  <p>Think in hexes. Protect your Core. Outplay your rival.</p>
-</div>
+# 3D Print Desk
 
-Welcome to Hexfall, a turn-based strategy game where every piece has its own way to move and fight. Learn as you play with Hex, practice tactics, or challenge a friend.
+Three parts, all static files (host on GitHub Pages) plus a Supabase backend.
 
-## Start playing
+The site root opens the customer shop; the admin is at `/admin/` (small link in the shop footer).
 
-Choose how you want to play from the main menu:
+| Path | What |
+|---|---|
+| `shop/` | Customer front end: STL/3MF upload, MakerWorld/Printables links, strength options, instant estimate, send request, login (cookie auto-login), order tracking |
+| `admin/` | Your desk: bills, queue, cards, accounts + login, cloud sync, **Requests** inbox, online-model and custom-design prices on quotes |
+| `shared/pricing.js` | Price rates, strength presets, STL/3MF parsing (used by both) |
+| `supabase/schema.sql` | Tables, Row Level Security, storage bucket |
+| `config.js` | Your Supabase URL + anon key |
 
-- **Play with Hex** — play a full game against the computer with helpful coaching.
-- **Play vs computer** — choose your opponent's style: Balanced, Raider, or Guardian.
-- **Two players** — take turns on the same device.
-- **Play online** — meet a friend in a lobby when online play is available.
-- **Learn the rules & practice drills** — explore the piece guide and solve 14 short puzzles.
+## Setup
+1. Create a project at supabase.com. Run `supabase/schema.sql` in the SQL Editor.
+2. Put the Project URL and **anon** key in `config.js` (never the service_role key).
+3. Auth > Providers > Email: turn off "Confirm email" if you want instant sign-up.
+4. Sign up once in `shop/`, then run: `update profiles set role='admin' where email='you@example.com';`
+5. Open `admin/` and sign in. The first sign-in uploads your local data to the cloud; other devices load it.
+6. Push to GitHub, enable Settings > Pages > Source: GitHub Actions. The workflow in `.github/workflows` deploys on every push to `main`.
+Local test: `python3 -m http.server` in this folder, then open `/shop/` and `/admin/`.
 
-Before a match, choose a board:
+## How a request flows
+1. Customer gets an estimate (nothing is stored unless they press send) and sends the request.
+2. It arrives in **Admin > Requests**. *Prepare quote* opens the Quote tab pre-filled (add model purchase / design price); *Save as quote & send* sends the quote.
+3. The customer accepts. Their contact details (name, email, phone, address) are copied onto the request at that moment; a phone number is required to accept. You see them in the request, with tap-to-call.
+4. Download their file from the request, slice it in Bambu Studio / Orca, then open the request and press *Actual price from sliced file*. Drop the `.gcode.3mf` in the Quote tab and press *Update bill with this price*. The bill and the customer's tracker show the final price (you can add a note).
+5. *Customer confirmed* puts it in the print queue. Queue status and paid state keep syncing to the customer's tracker.
 
-- **Skirmish** is a quick, beginner-friendly game with fewer pieces.
-- **Classic** introduces wild cards.
-- **Wild Rush** is for surprising combinations.
-- **Grand** gives you a larger board for longer plans.
-- **Mythic** adds powerful special pieces.
+If you already ran an older `schema.sql`, run the new one again; it is safe to re-run.
 
-## How to play
+## Notes
+- Prices: edit `shared/pricing.js`. Estimates are rough (volume, strength and layer height); the final price is yours.
+- Admin sync stores the whole app state as one row (`app_state`), with a version check: if two devices edit at once you get a conflict prompt.
+- Customer sessions are kept in cookies (`p3d-shop_*`), admin session in localStorage.
 
-Your goal is to capture your opponent's **Core** while keeping your own safe. Select one of your pieces to see where it can move. Gold markers show possible moves; marked enemy spaces can be captured. Choose a destination to make your move.
+## ESP32 light box (`esp32/order_lights/order_lights.ino`)
+Every 5 minutes the ESP32 asks Supabase for order counts (no names or contact data). Wiring: LED + resistor (220 Ω) from each pin to GND.
+| Pin | Light | On when |
+|---|---|---|
+| 25 | New order | a request is `new` or `accepted` and waiting for you |
+| 26 | Paid | a paid order is still to be produced |
+| 27 | Urgent | **blinks** = due within 2 days, **solid** = overdue |
+All three blinking together = the board can't reach Supabase. Optional buzzer: set `BUZZER` to a pin, it beeps when new orders arrive.
+Setup: run the updated `schema.sql`, get the key with `select value from app_secrets where key='device_key';`, fill in the top of the sketch (WiFi, URL, anon key, device key), flash with Arduino IDE (board: ESP32 Dev Module, no extra libraries).
+Only orders that came through the shop are counted, not bills you typed in by hand.
 
-Each piece has different abilities. Open **Learn** during a match or visit the rules and drills from the main menu to learn them. Hex can point out threats and, when possible, offer a safe move for your Core.
+## Colours
+Admin > Colors lists the colours you have (on/off, optionally per material, add your own). They are published to the shop automatically (table `public_settings`); until you publish, the shop shows a default palette. Untick "custom colour" to stop customers choosing colours you don't stock.
 
-**Opening protection:** a Seer cannot capture a Core that has not moved yet. Moving the Core removes this protection. An unmoved Seer also cannot capture the opposing starting Seer.
-
-## Playing with a friend online
-
-Choose **Play online**, enter your name and a lobby ID, then share that same ID with your friend. The first player to join is Ember and chooses the board; the second player is Tide. You each choose your wild cards before the match begins.
-
-Online play may not be enabled on every copy of the game. If the lobby cannot connect, ask the person who shared the game whether online play has been set up.
-
-## Your progress
-
-Completed drills, hints, and attempts are saved in your browser on your device. They are not tied to an account, and may not transfer to another browser or device.
-
+## Brand
+Store name: **Nozzler** (by Sepp). Logo files are in `assets/` (`logo.svg` with wordmark, `icon.svg` for favicon/app icon). The shop header and favicon use them.
