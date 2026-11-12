@@ -8,6 +8,7 @@ The site root opens the customer shop; the admin is at `/admin/` (small link in 
 |---|---|
 | `shop/` | Customer front end: STL/3MF upload, MakerWorld/Printables links, strength options, instant estimate, send request, login (cookie auto-login), order tracking |
 | `admin/` | Your desk: bills, queue, cards, accounts + login, cloud sync, **Requests** inbox, online-model and custom-design prices on quotes |
+| `admin/labels.js` | **Labels** tab: box labels and papers (see below) |
 | `shared/pricing.js` | Price rates, strength presets, STL/3MF parsing (used by both) |
 | `supabase/schema.sql` | Tables, Row Level Security, storage bucket |
 | `config.js` | Your Supabase URL + anon key |
@@ -62,3 +63,11 @@ Store name: **Nozzler** (by Sepp). Logo files are in `assets/` (`logo.svg` with 
 - **Links:** the Edge Function `supabase/functions/model-info` downloads the model file (STL/3MF) from the link on the server and hands it to the browser, which measures it like an uploaded file; the file is also stored with the request. Deploy once: `supabase functions deploy model-info`. Printables works without a login; MakerWorld only uses print profiles made for the **Bambu Lab P1S** (other printers' profiles are ignored; if the page has none you enter weight and time by hand). `MAKERWORLD_TOKEN` (`supabase secrets set MAKERWORLD_TOKEN=...`) downloads the sliced .3mf of the first P1S profile (without it you get the numbers from the design data); Thingiverse needs `THINGIVERSE_TOKEN`. If nothing can be fetched the customer enters weight and time by hand. Admin > Quote has an *Auto-fill from the model link* button using the same function.
 
 
+
+## Box labels & papers (Admin > Labels, `admin/labels.js`)
+Pick an order (or press *Box labels* in a bill), set the **number of boxes** and which **part goes in which box** (parts come from the bill's plates / the customer's items; edit, add, *Split* a quantity over two boxes, *Spread evenly*, *Reset from bill*). Parts do not have to share a box.
+- **On the box (per box):** delivery label (100x150 mm), top label (150x100 mm) and a cut-open seal strip (280x44 mm) that runs over top, side and bottom, with a dashed cut line and scissors on the side/bottom seam, so the box has to be cut open. Tick **↻90°** next to a label to turn it sideways (text and all) for a vertical side. Each shows the box number (`2/3`), order name and ID, customer, delivery place, due date, contents and a barcode.
+- **In the box:** packing slip (per box, with checkboxes), receipt (from the bill), thank-you letter and a care card (tips follow the materials used). The last three go in the box you choose.
+- **Rotate 90°:** every label type has a ↻90° tick next to it (turns the label sideways in the preview and in all exports; handy for the seal strip on a vertical box side).
+- **Print style:** colour, grayscale or black & white. **Language:** English or Dutch.
+- **Export:** every label as SVG, PNG (150/300/600 dpi) or vector PDF, or everything at once as one PDF, or a ZIP of SVGs/PNGs. Works offline, no libraries. Box plans are saved with your data (`S.lbl`) and sync with the cloud state.
