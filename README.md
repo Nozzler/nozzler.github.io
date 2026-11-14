@@ -64,10 +64,20 @@ Store name: **Nozzler** (by Sepp). Logo files are in `assets/` (`logo.svg` with 
 
 
 
-## Box labels & papers (Admin > Labels, `admin/labels.js`)
-Pick an order (or press *Box labels* in a bill), set the **number of boxes** and which **part goes in which box** (parts come from the bill's plates / the customer's items; edit, add, *Split* a quantity over two boxes, *Spread evenly*, *Reset from bill*). Parts do not have to share a box.
-- **On the box (per box):** delivery label (100x150 mm), top label (150x100 mm) and a cut-open seal strip (280x44 mm) that runs over top, side and bottom, with a dashed cut line and scissors on the side/bottom seam, so the box has to be cut open. Tick **↻90°** next to a label to turn it sideways (text and all) for a vertical side. Each shows the box number (`2/3`), order name and ID, customer, delivery place, due date, contents and a barcode.
-- **In the box:** packing slip (per box, with checkboxes), receipt (from the bill), thank-you letter and a care card (tips follow the materials used). The last three go in the box you choose.
-- **Rotate 90°:** every label type has a ↻90° tick next to it (turns the label sideways in the preview and in all exports; handy for the seal strip on a vertical box side).
-- **Print style:** colour, grayscale or black & white. **Language:** English or Dutch.
-- **Export:** every label as SVG, PNG (150/300/600 dpi) or vector PDF, or everything at once as one PDF, or a ZIP of SVGs/PNGs. Works offline, no libraries. Box plans are saved with your data (`S.lbl`) and sync with the cloud state.
+## Box labels & papers (Admin > Labels)
+Files: `admin/labels.js` (engine + UI) and `admin/labels.defaults.js` (brand, colours, texts and every label template as JSON).
+
+**Make labels**: pick an order (or press *Box labels* in a bill), set the number of boxes and which part goes in which box (parts need not share a box; *Split*, *Spread evenly*, *Reset from bill*). Tick the labels you want; each has ↻90° (turns the whole label, text included), a copies counter and a ⚙ shortcut to its settings. Style: colour / grayscale / B&W, language EN / NL.
+Export: one PDF (copies repeated), **print sheets** (labels packed at real size on A4 / A5 / A3 / Letter, optional cut guides), or a ZIP of SVG / PNG (150-600 dpi). Each preview also has its own SVG / PNG / PDF button.
+
+| Group | Templates |
+|---|---|
+| On the box | Delivery label, Top label, Cut-open seal (cut line on the side/bottom seam), Bottom & side seal (small wrap-around sticker: only the logo and a cut line; length on the side/bottom is a setting), Lid thank-you seal (brand, headline, vertical THANK YOU, hearts, social lines, optional cut line), Fragile label, This side up, Box number sticker, Return address label, Thank-you tape strip (repeating logo, any length) |
+| In the box | Packing slip, Receipt, Thank-you letter, Care card, Help & contact card, Review request card, Print passport (credit-card size: material, weight, print time), Handwritten note card, Quality-checked sticker, Round thank-you sticker |
+| Per part | Part tag (one per part: name, details, qty, box) |
+| Workshop (internal) | Job ticket (order, material, weight, time, due date, barcode), Pack checklist (tick boxes) |
+
+**Templates**: every label is JSON (`id, name, group, per, w, h, vars, elements`). Open the *Templates* tab to change a template's settings (for example the seal's cut-line position), edit its JSON with a live check (a template with a mistake is never applied), duplicate it, or start a new one. Elements: rect, line, poly, text, para, stack, parts, bars, logo, tips, rc (receipt), rep (repeat). Numbers can be expressions (`"W-10"`, `"barcode?118:H-8"`) and text can use `{{id}}`, `{{name}}`, `{{customer}}`, `{{box}}`, `{{boxes}}`, `{{brand.name}}`, `{{t.<text key>}}` and so on. The *JSON* tab has a short reference.
+
+**Look & text**: brand name, wordmark, tagline, signature, footer, return address, contact and web lines, the colour palette and all texts (EN and NL).
+**JSON**: everything you change is saved as sparse overrides (`S.lblcfg`) on top of the defaults file, so updating `labels.defaults.js` never wipes your changes. Download or import the overrides, download the full config, or reset.
