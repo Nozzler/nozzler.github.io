@@ -46,7 +46,7 @@ async function loadReq(){const[a,b]=await Promise.all([sb.from("requests").selec
   /* quotes the customer has accepted since the last check */
   const acc=new Set(REQ.filter(r=>r.status=="accepted").map(r=>r.id)),fresh=SEEN?[...acc].filter(i=>!SEEN.has(i)):[];SEEN=acc;
   if(fresh.length){const r=REQ.find(x=>x.id==fresh[0]);toast("✓ "+((PRO[r.user_id]||{}).name||"Customer")+" accepted “"+r.name+"”"+(fresh.length>1?" (+"+(fresh.length-1)+" more)":""))}
-  if(["Requests","Bills","Queue","Dashboard"].includes(tab)&&!modal)render();mirror()}}
+  if(["Requests","Bills","Queue","Dashboard"].includes(tab)&&!modal)render();if(window.labelsRefresh)labelsRefresh();mirror()}}
 let SEEN=null;window.reqAcc=b=>b[14]=="quote"&&!!b[17]&&REQ.some(r=>r.id==b[17]&&r.status=="accepted");
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&cloud)loadReq()});
 window.reqView=()=>{const n=REQ.filter(r=>r.status=="new").length;if(!cloud)return`<div class="card mu">Sign in with Supabase to receive customer requests.</div>`;

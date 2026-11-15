@@ -106,13 +106,24 @@ const isOn=(t,u)=>t.id in u.on?!!u.on[t.id]:!!t.on,isRot=(t,u)=>t.id in u.rot?!!
 const tvars=(t,u)=>{const o={};for(const[k,d]of Object.entries(t.vars||{})){const v=(u.vars[t.id]||{})[k];o[k]=v!==undefined?+v:+d.v}return o};
 /* ---------- order data ---------- */
 const billOf=id=>S.bills.find(b=>b[0]==id),REQS=()=>typeof REQ!="undefined"?REQ:[],PROS=()=>typeof PRO!="undefined"?PRO:{};
-const reqOf=b=>b[17]&&REQS().find(r=>r.id==b[17]);
+const reqOf=b=>(b[17]&&REQS().find(r=>r.id==b[17]))||REQS().find(r=>r.bill_id&&r.bill_id==b[0]);
 const cust=b=>{const r=reqOf(b),p=r?(r.contact||PROS()[r.user_id]||{}):{},d=b[16]||{};return{name:p.name||"",where:d.loc||(r&&r.delivery_where)||""}};
-const defParts=b=>{const m=b[11]||{},pl=m.plates||[],r=reqOf(b),it=r&&r.options&&r.options.items,mt=x=>[x.m,x.w&&x.w+" g"].filter(Boolean).join(" · ");
- if(pl.length>1)return pl.map(p=>({n:p.name||"Plate "+p.plateNum,q:1,x:1,d:mt(p)}));
- if(it&&it.length)return it.map(i=>({n:i.name,q:i.qty||1,x:1,d:[(i.cl||[]).map(c=>c.n).join("+")||i.colour,i.m].filter(Boolean).join(" · ")}));
- return[{n:b[1],q:(r&&r.options&&+r.options.qty)||1,x:1,d:mt(m)}]};
-const plan=id=>{S.lbl=S.lbl||{};let p=S.lbl[id];if(!p||!p.parts)p=S.lbl[id]={n:1,pp:1,parts:defParts(billOf(id))};return p};
+/* Parts come from the order by themselves: the customer's items first (name, qty, colour, material), else the print plates, else the bill.
+   Box choices are kept by part name when the order changes; parts you add by hand stay; editing an order part by hand switches to manual until "Sync with order". */
+const defParts=b=>{const m=b[11]||{},pl=m.plates||[],r=reqOf(b),it=r&&r.options&&r.options.items,mt=x=>[x.m,x.w&&x.w+" g"].filter(Boolean).join(" · ");let o,src;
+ if(it&&it.length){src="the customer’s items";o=it.map(i=>({n:i.name||"Item",q:Math.max(1,+i.qty||1),x:1,d:[(i.cl||[]).map(c=>c.n).filter(Boolean).join("+")||i.colour,i.m].filter(Boolean).join(" · ")}))}
+ else if(pl.length>1){src="the print plates";o=pl.map(p=>({n:p.name||"Plate "+p.plateNum,q:1,x:1,d:mt(p)}))}
+ else{src="the bill";o=[{n:b[1],q:Math.max(1,(r&&r.options&&+r.options.qty)||1),x:1,d:mt(m)}]}
+ o.src=src;return o};
+const syncParts=(p,dp)=>{const man=p.parts.filter(o=>o.man),pool=p.parts.filter(o=>!o.man),out=[];
+ for(const d of dp){const m=pool.filter(o=>o.n==d.n);m.forEach(o=>pool.splice(pool.indexOf(o),1));const sum=m.reduce((a,o)=>a+(+o.q||0),0);
+  if(m.length&&sum==d.q)m.forEach(o=>out.push({...o,d:d.d}));else out.push({...d,x:Math.min(m.length?m[0].x:1,p.n)})}
+ p.parts=[...out,...man];p.sig=JSON.stringify(dp);p.src=dp.src;p.manual=false};
+const plan=id=>{S.lbl=S.lbl||{};let p=S.lbl[id];const dp=defParts(billOf(id)),sig=JSON.stringify(dp);
+ if(!p||!p.parts)p=S.lbl[id]={n:1,pp:1,parts:dp.map(x=>({...x})),sig,src:dp.src,manual:false};
+ else if(p.sig===undefined){p.manual=false;syncParts(p,dp)}
+ else if(!p.manual&&p.sig!==sig)syncParts(p,dp);
+ return p};
 const slug=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"nozzler";
 const of_=(pl,i)=>pl.parts.filter(p=>p.x==i);
 const sumQ=ps=>ps.reduce((a,p)=>a+(+p.q||0),0);
@@ -127,6 +138,9 @@ const baseCtx=(b,pl,lang)=>{const C0=cfg(),d=b[16]||{},cu=cust(b),t={...(C0.text
 const RCH={h:9,c:6,t:6,sep:4,kv:5,big:9,bar:15,stamp:14},rch=(r,w)=>r[0]=="c"?wrap(r[1],3.3,0,w-10).length*4.2+2:RCH[r[0]]||5,rcHeight=(b,w=80)=>Math.ceil(12+rcRows(b).reduce((a,r)=>a+rch(r,w),0));
 const plist=(out,ps,x,y,w,y2,z,t)=>{let k=0;for(const p of ps){const h=z*(p.d?2.15:1.4);if(y+h>y2){out.push(T(x,y,"+ "+(ps.length-k)+" "+t.more,{z,f:"mu"}));return}
  out.push(T(x,y,p.q+"×",{z,b:1}),T(x+z*2.4,y,cut(p.n,z,1,w-z*2.4),{z,b:1}));if(p.d)out.push(T(x+z*2.4,y+z*.95,cut(p.d,z*.8,0,w-z*2.4),{z:z*.8,f:"mu"}));y+=h;k++}};
+const boxedRows=(out,ps,x,y,w,y2,z,t)=>{let k=0;for(const p of ps){const h=z*(p.d?2.2:1.5);if(y+h>y2){out.push(T(x,y,"+ "+(ps.length-k)+" "+t.more,{z,f:"mu"}));return}
+ const bx=t.box+" "+p.x,bw=tw(bx,z*.85,1)+5;out.push(T(x,y,p.q+"×",{z,b:1}),T(x+z*2.4,y,cut(p.n,z,1,w-z*2.4-bw),{z,b:1}),T(x+w,y,bx,{z:z*.85,b:1,a:"r",f:"ac"}));
+ if(p.d)out.push(T(x+z*2.4,y+z*.95,cut(p.d,z*.8,0,w-z*2.4),{z:z*.8,f:"mu"}));y+=h;k++}};
 const slipRows=(out,ps,x,y,w,y2,t,tick)=>{for(let k=0;k<ps.length;k++){const p=ps[k];if(y>y2){out.push(T(x+24,y,"+ "+(ps.length-k)+" "+t.more,{z:3.8,f:"mu"}));break}
  if(tick)out.push(R(x+1,y-3.4,3.8,3.8,{s:"ink",sw:.35}));out.push(T(x+8,y,String(p.q),{z:4.6,b:1}),T(x+24,y,cut(p.n,4.6,1,w-28),{z:4.6,b:1}));if(p.d)out.push(T(x+24,y+4.2,cut(p.d,3.3,0,w-28),{z:3.3,f:"mu"}));out.push(L(x,y+6.4,x+w,y+6.4,{s:"ln",sw:.2}));y+=11}};
 const pick=(el,o,ks)=>{for(const k of ks)if(el[k]!==undefined)o[k]=el[k];return o};
@@ -142,7 +156,7 @@ const emit=(el,c,out)=>{if(el.if!=null&&!ev(el.if,c))return;const n=k=>nv(el[k],
  case"para":case"paras":paras(el,c,out,n("x"),n("y"),n("w"));break;
  case"stack":{let y=n("y");const x=n("x"),w=n("w");for(const it of el.items||[]){if(it.if!=null&&!ev(it.if,c))continue;
    if(it.k=="text"){textEl(it,c,out,x,y+(it.dy?nv(it.dy,c):0));y+=nv(it.adv,c)}else if(it.k=="paras"||it.k=="para")y=paras(it,c,out,x,y,w);else if(it.k=="space")y+=nv(it.h,c)}break}
- case"parts":{const ps=c._.parts,x=n("x"),y=n("y"),w=n("w"),y2=n("y2");if(el.style=="slip")slipRows(out,ps,x,y,w,y2,c.t,el.tick==null?1:nv(el.tick,c));else plist(out,ps,x,y,w,y2,n("z")||4,c.t);break}
+ case"parts":{const ps=c._.parts,x=n("x"),y=n("y"),w=n("w"),y2=n("y2");if(el.style=="slip")slipRows(out,ps,x,y,w,y2,c.t,el.tick==null?1:nv(el.tick,c));else if(el.style=="boxed")boxedRows(out,ps,x,y,w,y2,n("z")||4.2,c.t);else plist(out,ps,x,y,w,y2,n("z")||4,c.t);break}
  case"heart":{const x=n("x"),y=n("y"),sz=n("s")||6,pts=[];for(let i=0;i<40;i++){const t=i/40*2*Math.PI,hx=16*Math.sin(t)**3,hy=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);pts.push([x+hx*sz/34,y-hy*sz/34])}out.push(P(pts,{f:el.f||"ac"}));break}
  case"checks":{const list=getp(c,el.list)||[],x=n("x"),w=n("w"),z=n("z")||3.8,gp=el.gap!=null?n("gap"):3.4;let y=n("y");for(const it of list){const ls=wrap(fx(it,c),z,0,w-6);out.push(R(x,y-z*.78,z*.9,z*.9,{s:"ink",sw:.35}));ls.forEach((l,j)=>out.push(T(x+6,y+j*z*1.3,l,{z})));y+=ls.length*z*1.3+gp}break}
  case"bars":out.push(...bars(n("x"),n("y"),n("w"),n("h"),el.code?fx(el.code,c):c.id));break;
@@ -195,7 +209,7 @@ const tile=(t,sm,u,pl)=>{const on=isOn(t,u),rt=isRot(t,u),sc=sm[t.id];
  <span class="lbcp"><button type="button" class="btn g s" data-lb="cp:${t.id}:-1">−</button><b>${cop(t,u)}×</b><button type="button" class="btn g s" data-lb="cp:${t.id}:1">+</button></span>
  <button type="button" class="btn g s" data-lb="edit:${t.id}" title="Settings and JSON of this template">⚙</button></div></div>`};
 const makeView=(u,bs,G)=>{const b=billOf(u.id),pl=plan(u.id),n=pl.n,C0=cfg(),cu=cust(b),d=b[16]||{},nums=Array.from({length:n},(_,i)=>[i+1,"Box "+(i+1)]);
- const rows=pl.parts.map((p,i)=>`<tr><td><input data-lbi="p:${i}:n" value="${esc(p.n)}" style="min-width:150px"></td><td><input data-lbi="p:${i}:d" value="${esc(p.d||"")}" style="min-width:110px"></td><td><input data-lbi="p:${i}:q" type="number" min="1" value="${p.q}" style="width:64px"></td><td>${sel("p:"+i+":x",nums,p.x)}</td><td><div class="acts"><button class="btn g s" data-lb="split:${i}" title="Split this part over two boxes">Split</button><button class="btn g s" data-lb="del:${i}">✕</button></div></td></tr>`).join("");
+ const auto=!pl.manual,rows=pl.parts.map((p,i)=>{const lock=auto&&!p.man;return`<tr><td>${lock?`<b>${esc(p.n)}</b>`:`<input data-lbi="p:${i}:n" value="${esc(p.n)}" style="min-width:150px">`}</td><td>${lock?`<span class="mu">${esc(p.d||"–")}</span>`:`<input data-lbi="p:${i}:d" value="${esc(p.d||"")}" style="min-width:110px">`}</td><td>${lock?`<b>${p.q}×</b>`:`<input data-lbi="p:${i}:q" type="number" min="1" value="${p.q}" style="width:64px">`}</td><td>${sel("p:"+i+":x",nums,p.x)}</td><td><div class="acts"><button class="btn g s" data-lb="split:${i}" title="Split this part over two boxes">Split</button>${lock?"":`<button class="btn g s" data-lb="del:${i}">✕</button>`}</div></td></tr>`}).join("");
  const boxes=nums.map(([v])=>{const ps=of_(pl,v);return`<div class="lbbox ${ps.length?"":"empty"}"><b>Box ${v}</b><span>${sumQ(ps)} pcs</span><small>${ps.length?esc(ps.map(p=>p.q+"× "+p.n).join(", ")):"empty"}</small></div>`}).join("");
  const tot=G.items.reduce((a,l)=>a+l.copies,0);let sheet=null;if(u.fmt=="sheet"){const scs=[];for(const l of G.items)for(let k=0;k<l.copies;k++)scs.push(l.sc);if(+u.sheet.sort)scs.sort((a,b)=>b.h-a.h);sheet=packSheet(scs,u.sheet)}
  const sh=u.sheet,grp=[...GROUPS,...[...new Set(C0.templates.map(t=>t.group))].filter(g=>!GROUPS.some(x=>x[0]==g)).map(g=>[g,g||"Other"])];
@@ -204,8 +218,8 @@ const makeView=(u,bs,G)=>{const b=billOf(u.id),pl=plan(u.id),n=pl.n,C0=cfg(),cu=
  ${fld("Papers go in",sel("pp",nums,pl.pp))}${fld("Print style",seg("m",[["color","Colour"],["gray","Grayscale"],["bw","B & W"]],u.m))}
  ${fld("Language",seg("lang",[["","Default"],["en","EN"],["nl","NL"]],u.lang))}</div>
  <p class="mu lbsum">${[cu.name&&"Customer: "+cu.name,cu.where&&"Delivery: "+cu.where,d.due&&"Needed by "+d.due,sumQ(pl.parts)+" pieces"].filter(Boolean).map(esc).join(" · ")}</p></div>
- <div class="card lbcard"><h2>Boxes &amp; parts</h2><div class="lbboxes">${boxes}</div><div class="tw"><table><tr><th>Part</th><th>Details</th><th>Qty</th><th>Box</th><th></th></tr>${rows}</table></div>
- <div class="row" style="margin-top:10px"><button class="btn g s" data-lb="add">+ Add part</button><button class="btn g s" data-lb="spread">Spread evenly</button><button class="btn g s" data-lb="reset">Reset from bill</button></div></div>
+ <div class="card lbcard"><h2>Boxes &amp; parts</h2><p class="mu lbsum" style="margin:0 0 10px">${pl.manual?`You edited the parts by hand. <a href="#" data-lb="reset">Sync with order</a>`:`Parts are filled in from ${esc(pl.src||"the order")} automatically, and follow the order when it changes. <a href="#" data-lb="manual">Edit by hand</a>`}</p><div class="lbboxes">${boxes}</div><div class="tw"><table><tr><th>Part</th><th>Details</th><th>Qty</th><th>Box</th><th></th></tr>${rows}</table></div>
+ <div class="row" style="margin-top:10px"><button class="btn g s" data-lb="add">+ Add part</button><button class="btn g s" data-lb="spread">Spread evenly</button><button class="btn g s" data-lb="reset" title="Re-read the parts from the order (keeps your box choices and parts you added)">Sync with order</button></div></div>
  <div class="card lbcard"><h2>Labels to make</h2><p class="mu" style="margin:0 0 10px">Tick what you need. ↻ turns a label 90° (text and all), × sets the number of copies, ⚙ opens its settings.</p>
  ${grp.map(([g,gn])=>{const ts=C0.templates.filter(t=>t.group==g);return ts.length?`<h3 class="lbh">${esc(gn)}</h3><div class="lbtiles">${ts.map(t=>tile(t,G.smp,u,pl)).join("")}</div>`:""}).join("")}</div>
  ${G.errs.length?`<div class="msg er">${G.errs.map(e=>`<div>${esc(e.msg)} <a href="#" data-lb="edit:${e.tpl.id}">fix</a></div>`).join("")}</div>`:""}
@@ -240,7 +254,7 @@ const lookView=(u,G)=>{const C0=cfg(),B=C0.brand,lang=u.txlang||"en",TXT=(C0.tex
  <div class="lbtx">${Object.entries(TXT).map(([k,v])=>Array.isArray(v)?`<div><label>${esc(k)} <span class="mu">(one per line)</span></label><textarea data-lbi="tx:${lang}:${k}" rows="${Math.min(8,v.length+1)}">${esc(v.join("\n"))}</textarea></div>`:`<div><label>${esc(k)}</label><input data-lbi="tx:${lang}:${k}" value="${esc(v)}"></div>`).join("")}</div></div>`};
 const DOCS=`<details class="lbdoc"><summary>How templates work</summary><div>
 <p>A template is JSON: <code>id, name, group</code> (outside / inside / part), <code>per</code> (<code>box</code> = one per box, <code>once</code> = one per order, <code>part</code> = one per part), <code>w, h</code> in mm (numbers or expressions of your <code>vars</code>, e.g. <code>"h":"sideLen+botLen"</code>; <code>"h":"auto"</code> for the receipt), optional <code>vars</code> (settings that show up as inputs), <code>rotate, on, copies</code> and <code>elements</code>.</p>
-<p>Elements (all sizes in mm, origin top-left, text y = baseline): <code>rect</code> x y w h r f s sw d · <code>line</code> x y x2 y2 s sw d · <code>poly</code> p:[[x,y],…] f s · <code>text</code> x y text z b a(l|m|r) f fit cut dy (<code>"text":"@wordmark"</code> = your coloured logo name) · <code>para</code> x y w text|list z lh gap a · <code>stack</code> x y w items:[text|paras|space] (flows downward, <code>adv</code> = step after an item) · <code>parts</code> style(compact|slip) x y w y2 z · <code>bars</code> x y w h · <code>logo</code> x y h mark · <code>tips</code> · <code>rc</code> (receipt rows) · <code>rep</code> v from to step items (repeats elements) · <code>heart</code> x y s f · <code>checks</code> x y w list z (tick-box list) · add <code>"rot":1</code> to a text for vertical text (x = baseline, y = start along the label; such labels can't be turned again).</p>
+<p>Elements (all sizes in mm, origin top-left, text y = baseline): <code>rect</code> x y w h r f s sw d · <code>line</code> x y x2 y2 s sw d · <code>poly</code> p:[[x,y],…] f s · <code>text</code> x y text z b a(l|m|r) f fit cut dy (<code>"text":"@wordmark"</code> = your coloured logo name) · <code>para</code> x y w text|list z lh gap a · <code>stack</code> x y w items:[text|paras|space] (flows downward, <code>adv</code> = step after an item) · <code>parts</code> style(compact|slip|boxed) x y w y2 z · <code>bars</code> x y w h · <code>logo</code> x y h mark · <code>tips</code> · <code>rc</code> (receipt rows) · <code>rep</code> v from to step items (repeats elements) · <code>heart</code> x y s f · <code>checks</code> x y w list z (tick-box list) · add <code>"rot":1</code> to a text for vertical text (x = baseline, y = start along the label; such labels can't be turned again).</p>
 <p>Any number can be an expression (<code>"W-10"</code>, <code>"cutX+4"</code>, <code>"barcode?118:H-8"</code>) using W, H, your template vars and the loop variable. Add <code>"if":"customer"</code> to show an element only when true. Colours: ink ac lt l2 o2 d2 st pp mu ln wh or #hex. <code>fit</code>/<code>cut</code> shrink or shorten text to that width.</p>
 <p>Text can contain <code>{{…}}</code>: id name date account customer where due info idline box boxes pp pieces allpieces today brand.name/tagline/sign/footer/contact/web/address, material weight time plates, <code>upper(x)</code>, t.&lt;text key&gt;, part.name/detail/qty/box (per-part templates).</p></div></details>`;
 const jsonView=(u)=>`<div class="card lbcard"><h2>Your overrides</h2><p class="mu" style="margin:0 0 10px">Everything you change in Labels is stored here and merged on top of the defaults in <code>labels.defaults.js</code>. Templates are matched by <code>id</code>; add <code>"replace":true</code> to swap a whole template.</p>
@@ -266,11 +280,11 @@ const css=`.lbt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.lbt butt
 @media(max-width:640px){.lbtwo2{grid-template-columns:1fr}.lbside{flex-basis:100%}}`;
 const TABS=[["make","Make labels"],["tpl","Templates"],["look","Look & text"],["json","JSON"]];
 window.labelView=()=>{const bs=S.bills.filter(b=>b[14]!="quote");if(!bs.length)return`<div class="card mu">Make a bill first; labels are built from your bills.</div>`;
- const u=U();if(!bs.some(b=>b[0]==u.id))u.id=bs[bs.length-1][0];if(!TABS.some(t=>t[0]==u.tab))u.tab="make";
- const G=gen();CUR=G.items;
+ const u=U();if(!bs.some(b=>b[0]==u.id)){const act=bs.filter(b=>((b[16]||{}).st||"")!="delivered");u.id=(act.length?act:bs).slice(-1)[0][0]}if(!TABS.some(t=>t[0]==u.tab))u.tab="make";
+ const G=gen();CUR=G.items;try{LSIG=JSON.stringify(defParts(billOf(u.id)))}catch(e){}
  const body=u.tab=="tpl"?tplView(u,G):u.tab=="look"?lookView(u,G):u.tab=="json"?jsonView(u):makeView(u,bs,G);
  return`<div class="lbt">${TABS.map(([k,l])=>`<button type="button" class="${k==u.tab?"on":""}" data-lb="tab:${k}">${l}</button>`).join("")}</div>${body}`};
-const re=()=>{if(tab=="Labels"){const y=window.scrollY;$("#app").innerHTML=labelView();window.scrollTo(0,y)}};
+const re=()=>{if(tab=="Labels"){try{const b=billOf(U().id);if(b)LSIG=JSON.stringify(defParts(b))}catch(e){}const y=window.scrollY;$("#app").innerHTML=labelView();window.scrollTo(0,y)}};
 const doAll=async(u)=>{const m=u.m,f=u.fmt,id=u.id,sh=slug(CF().shop);if(!CUR.length)return;toast("Preparing…");
  if(f=="pdf"){const L=[];for(const l of CUR)for(let k=0;k<l.copies;k++)L.push(l.sc);dl(new Blob([pdf(L,m)],{type:"application/pdf"}),`${sh}_${id}_labels.pdf`)}
  else if(f=="sheet"){const scs=[];for(const l of CUR)for(let k=0;k<l.copies;k++)scs.push(l.sc);if(+u.sheet.sort)scs.sort((a,b)=>b.h-a.h);const r=packSheet(scs,u.sheet);dl(new Blob([pdfPages(r.pages,m)],{type:"application/pdf"}),`${sh}_${id}_label-sheets.pdf`)}
@@ -282,12 +296,13 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-lb]
  try{
  if(a=="tab")u.tab=x;
  else if(a=="set"){if(x=="m"||x=="lang"||x=="fmt")u[x]=y===undefined?"":y;else if(x=="txlang")u.txlang=y;else if(x=="sheetland")u.sheet.land=+y;else u[x]=y}
- else if(a=="nn"){pl.n=Math.max(1,Math.min(30,pl.n+(+x)));pl.parts.forEach(p=>p.x=Math.min(p.x,pl.n));pl.pp=Math.min(pl.pp,pl.n)}
- else if(a=="add")pl.parts.push({n:"New part",q:1,x:1,d:""});
- else if(a=="del")pl.parts.splice(+x,1);
+ else if(a=="nn"){pl.n=Math.max(1,Math.min(30,pl.n+(+x)));pl.parts.forEach(p=>p.x=Math.min(p.x,pl.n));pl.pp=Math.min(pl.pp,pl.n);if(+x>0&&pl.n>1&&pl.parts.length>1&&pl.parts.every(p=>p.x==1))pl.parts.forEach((p,i)=>p.x=Math.floor(i*pl.n/pl.parts.length)+1)}
+ else if(a=="add")pl.parts.push({n:"New part",q:1,x:1,d:"",man:1});
+ else if(a=="del"){if(!pl.parts[+x].man)pl.manual=true;pl.parts.splice(+x,1)}
  else if(a=="split"){const p=pl.parts[+x];if(p.q>1){const h=Math.floor(p.q/2);p.q-=h;pl.parts.splice(+x+1,0,{...p,q:h,x:Math.min(pl.n,p.x+1)})}else toast("Quantity is 1, nothing to split")}
  else if(a=="spread")pl.parts.forEach((p,i)=>p.x=Math.floor(i*pl.n/pl.parts.length)+1);
- else if(a=="reset")pl.parts=defParts(billOf(u.id));
+ else if(a=="manual")pl.manual=true;
+ else if(a=="reset")syncParts(pl,defParts(billOf(u.id)));
  else if(a=="rot"){const t=C0.templates.find(q=>q.id==x);u.rot[x]=isRot(t||{id:x},u)?0:1}
  else if(a=="cp"){const t=C0.templates.find(q=>q.id==x);u.copies[x]=Math.max(1,Math.min(99,cop(t||{id:x},u)+(+y)))}
  else if(a=="edit"){u.sel=x;u.tab="tpl"}
@@ -313,7 +328,7 @@ document.addEventListener("change",e=>{const el=e.target.closest("[data-lbi]");i
  if(k=="imp"){const f=el.files&&el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!isO(o))throw new Error("not a JSON object");S.lblcfg=o;CM=null;gen();note(true,"Imported "+f.name+".")}catch(err){S.lblcfg={};CM=null;note(false,"Import failed: "+err.message)}save();re()};r.readAsText(f);return}
  if(k=="n"){pl.n=Math.max(1,Math.min(30,+v||1));pl.parts.forEach(p=>p.x=Math.min(p.x,pl.n));pl.pp=Math.min(pl.pp,pl.n)}
  else if(k=="id")u.id=v;else if(k=="pp")pl.pp=+v;else if(k=="dpi")u.dpi=+v;
- else if(k=="p"){const p=pl.parts[+x];if(y=="q")p.q=Math.max(1,Math.round(+v)||1);else if(y=="x")p.x=+v;else p[y]=v}
+ else if(k=="p"){const p=pl.parts[+x];if(y!="x"&&!p.man)pl.manual=true;if(y=="q")p.q=Math.max(1,Math.round(+v)||1);else if(y=="x")p.x=+v;else p[y]=v}
  else if(k=="on")u.on[x]=el.checked?1:0;
  else if(k=="var"){(u.vars[x]=u.vars[x]||{})[y]=el.type=="checkbox"?(el.checked?1:0):(+v||0)}
  else if(k=="sheet"){u.sheet[x]=el.type=="checkbox"?(el.checked?1:0):v}
@@ -326,6 +341,9 @@ document.addEventListener("change",e=>{const el=e.target.closest("[data-lbi]");i
 document.addEventListener("input",e=>{const el=e.target.closest("[data-lbz]");if(!el||tab!="Labels")return;const u=U();u.zoom=+el.value;const g=$(".lbg");if(g)g.style.setProperty("--z",u.zoom/100)});
 document.addEventListener("change",e=>{const el=e.target.closest("[data-lbz]");if(el&&tab=="Labels")save()});
 document.head.appendChild(Object.assign(document.createElement("style"),{textContent:css}));
+let LSIG="";
+window.labelsRefresh=()=>{if(tab!="Labels"||typeof S=="undefined")return;const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
+ const b=S.bills.find(x=>x[0]==U().id);if(!b)return;const sig=JSON.stringify(defParts(b));if(sig!==LSIG){LSIG=sig;re()}};
 window.LabelGen={ev,fx,cfg,gen,svg,pdf,pdfPages,packSheet,zip,png,rot90,PAL:()=>PAL,pick:id=>{U().id=id},_ui:U,_patch:patch};
 /* opened straight on #Labels: the first render ran before this file loaded */
 if(typeof tab!="undefined"&&tab=="Labels"&&typeof render=="function")render();

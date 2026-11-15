@@ -1,6 +1,35 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Nozzler · 3D printing by Sepp</title><link rel="icon" type="image/svg+xml" href="../assets/icon.svg">
 <link rel="stylesheet" href="../shared/ui.css"></head><body class="shop">
-<header><h1><img src="../assets/logo.svg" alt="Nozzler" style="height:36px;display:block"></h1><nav id="nav"></nav><span style="flex:1"></span><button class="btn g s" id="lg"></button></header>
+<header>
+  <h1><img src="../assets/logo.svg" alt="Nozzler" style="height:36px;display:block"></h1>
+  <nav id="nav"></nav>
+  <div class="header-actions">
+    <div class="notifications" id="notifications" style="display:none">
+      <button class="notifications-btn" aria-label="Notifications" aria-expanded="false">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <span class="badge" id="notifBadge" style="display:none">0</span>
+      </button>
+      <div class="notifications-dropdown" id="notifDropdown" role="menu">
+        <div class="header"><h3>Notifications</h3><button id="markAllRead">Mark all read</button></div>
+        <div class="list" id="notifList"></div>
+      </div>
+    </div>
+    <button class="theme-toggle" data-a="th" aria-label="Toggle theme" title="Toggle theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    </button>
+    <div class="user-menu" id="userMenu">
+      <button class="user-menu-btn" aria-label="User menu" aria-expanded="false">
+        <span class="avatar" id="userAvatar">?</span>
+        <span class="name" id="userName">Sign in</span>
+        <span class="caret">▾</span>
+      </button>
+      <div class="user-menu-dropdown" id="userDropdown" role="menu">
+        <div id="userMenuContent"></div>
+      </div>
+    </div>
+  </div>
+</header>
 <main><div id="msg"></div><div id="v"></div></main>
 <footer><a href="../admin/">Shop admin</a></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -141,5 +170,76 @@ $("#lg").onclick=()=>user?out():(view="auth",render());
 if(sb){sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;if(user){if(view=="auth")view=pend?"new":"orders";load();if(pend){pend=false;send()}}render()});
  sb.auth.getSession().then(({data})=>{user=data.session?data.session.user:null;if(user)load();render()});setInterval(()=>{if(view=="orders"&&!document.hidden)load()},20000)}
 if(sb)sb.from("public_settings").select("value").eq("key","colors").maybeSingle().then(r=>{if(r.data){AV=r.data.value;render()}});
+/* Header enhancements */
+(function(){
+  const themeBtn=$("[data-a=th]"),sun=themeBtn?.querySelector(".icon-sun"),moon=themeBtn?.querySelector(".icon-moon");
+  function updateThemeIcons(){const dark=document.documentElement.dataset.theme==="dark"||(!document.documentElement.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);if(sun&&moon){sun.style.display=dark?"block":"none";moon.style.display=dark?"none":"block"}}
+  if(themeBtn){themeBtn.onclick=()=>{const r=document.documentElement,cur=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");r.dataset.theme=cur=="dark"?"light":"dark";try{localStorage.setItem("p3dth",r.dataset.theme)}catch(e){}updateThemeIcons()}}
+  updateThemeIcons();matchMedia("(prefers-color-scheme: dark)").addEventListener("change",updateThemeIcons);
+
+  const userMenu=$("#userMenu"),userBtn=$("#userMenu .user-menu-btn"),userDropdown=$("#userDropdown"),userMenuContent=$("#userMenuContent");
+  function updateUserMenu(){
+    if(user){
+      const name=user.user_metadata?.name||user.email?.split("@")[0]||"Customer";
+      const initial=name.charAt(0).toUpperCase();
+      $("#userAvatar").textContent=initial;
+      $("#userName").textContent=name;
+      userMenuContent.innerHTML=`<a href="#acct" data-t="acct"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Account</a><a href="#orders" data-t="orders"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> My orders</a><div class="divider"></div><div class="kv"><span>Credit</span><b>${E((wal||{}).credit||0)}</b></div><div class="kv"><span>Points</span><b>${(wal||{}).points||0} pts</b></div><div class="divider"></div><button class="danger" id="signOutShop">Sign out</button>`;
+      $("#signOutShop").onclick=out;
+      document.querySelectorAll("#userMenuContent [data-t]").forEach(b=>b.onclick=()=>{view=b.dataset.t;say("");render();userMenu.classList.remove("open");if(view=="orders")load()});
+    }else{
+      $("#userAvatar").textContent="?";
+      $("#userName").textContent="Sign in";
+      userMenuContent.innerHTML=`<a href="#acct" data-t="acct"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Sign in / Sign up</a>`;
+      document.querySelectorAll("#userMenuContent [data-t]").forEach(b=>b.onclick=()=>{view=b.dataset.t;say("");render();userMenu.classList.remove("open")});
+    }
+  }
+  if(userBtn&&userDropdown){
+    userBtn.onclick=e=>{e.stopPropagation();userMenu.classList.toggle("open");updateUserMenu()};
+    document.addEventListener("click",()=>userMenu.classList.remove("open"));
+    userDropdown.onclick=e=>e.stopPropagation();
+  }
+
+  const notif=$("#notifications"),notifBtn=$("#notifications .notifications-btn"),notifDropdown=$("#notifDropdown"),notifList=$("#notifList"),notifBadge=$("#notifBadge"),markAllRead=$("#markAllRead");
+  let notifications=[];
+  function addNotif(n){notifications.unshift({...n,id:Date.now()+Math.random(),read:false,time:new Date()});saveNotifs();renderNotifs();updateNotifVisibility()}
+  function saveNotifs(){try{localStorage.setItem("p3d_shop_notifs",JSON.stringify(notifications.slice(0,100)))}catch(e){}}
+  function loadNotifs(){try{const s=localStorage.getItem("p3d_shop_notifs");if(s)notifications=JSON.parse(s)}catch(e){}}
+  function renderNotifs(){
+    if(!notifList)return;
+    const unread=notifications.filter(n=>!n.read).length;
+    if(notifBadge){notifBadge.textContent=unread;notifBadge.style.display=unread?"flex":"none"}
+    notifList.innerHTML=notifications.length?notifications.slice(0,20).map(n=>`<div class="item ${n.read?"":"unread"}" data-id="${n.id}"><div class="icon" style="background:${n.type==="error"?"var(--er)":n.type==="success"?"var(--ok)":n.type==="warning"?"var(--wn)":"var(--ac)"}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${n.type==="error"?'<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>':n.type==="success"?'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>':n.type==="warning"?'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>':'<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>'}</svg></div><div class="content"><div class="title">${esc(n.title)}</div><div class="meta">${n.message||""} · ${new Date(n.time).toLocaleTimeString()}</div></div></div>`).join(""):`<div class="empty">No notifications</div>`;
+  }
+  function markRead(id){const n=notifications.find(x=>x.id===id);if(n){n.read=true;saveNotifs();renderNotifs()}}
+  function markAll(){notifications.forEach(n=>n.read=true);saveNotifs();renderNotifs()}
+  function updateNotifVisibility(){notif.style.display=user?"flex":"none"}
+  if(notifBtn){notifBtn.onclick=e=>{e.stopPropagation();notif.classList.toggle("open");renderNotifs()}}
+  if(markAllRead){markAllRead.onclick=e=>{e.stopPropagation();markAll()}}
+  if(notifList){notifList.onclick=e=>{const item=e.target.closest(".item");if(item)markRead(+item.dataset.id)}}
+  document.addEventListener("click",()=>notif?.classList.remove("open"));
+  if(notifDropdown){notifDropdown.onclick=e=>e.stopPropagation()}
+  loadNotifs();renderNotifs();updateNotifVisibility();
+  window.addShopNotification=addNotif;
+
+  let lastOrderStatuses={};
+  function checkOrderUpdates(){
+    if(!user||!orders.length)return;
+    orders.forEach(o=>{
+      const key=o.id,prev=lastOrderStatuses[key],curr=o.status;
+      if(prev&&prev!==curr){
+        const titles={quoted:"Quote ready",accepted:"Quote accepted",in_queue:"In print queue",printing:"Now printing",ready:"Ready for pickup",delivered:"Delivered",declined:"Declined",cancelled:"Cancelled"};
+        addNotif({type:["ready","delivered"].includes(curr)?"success":["declined","cancelled"].includes(curr)?"error":"info",title:"Order update: "+o.name,message:"Status changed to "+(titles[curr]||curr)});
+      }
+      lastOrderStatuses[key]=curr;
+    });
+  }
+  const origLoad=load;
+  load=async()=>{await origLoad();checkOrderUpdates()};
+  setInterval(()=>{if(view=="orders"&&!document.hidden)load()},20000);
+
+  if(sb){sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;updateUserMenu();updateNotifVisibility()})}
+})();
+
 render();
 </script></body></html>

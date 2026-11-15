@@ -14,7 +14,7 @@ window.LABEL_DEFAULTS={
   "sign": "Sepp",
   "footer": "Nozzler · by Sepp",
   "contact": "",
-  "web": "",
+  "web": "Nozzler.github.io",
   "address": ""
  },
  "defaults": {
@@ -131,7 +131,21 @@ window.LABEL_DEFAULTS={
    "ticket": "JOB TICKET",
    "steps": "PACK CHECKLIST",
    "packsteps": ["Parts counted and checked","Supports removed, edges cleaned","Quality check by hand","Parts bagged and packed","Papers and labels in the box","Boxes sealed and labelled"],
-   "pass": "PRINT PASSPORT"
+   "pass": "PRINT PASSPORT",
+   "heat": "KEEP AWAY FROM HEAT",
+   "heat2": "Not in a hot car or in direct sun.",
+   "dry": "KEEP DRY",
+   "dry2": "Store in a dry place.",
+   "openhere": "OPEN HERE",
+   "giftto": "To",
+   "giftfrom": "From",
+   "visit": "VISIT US ONLINE",
+   "postcard": ["Thank you for choosing a print made just for you.","I hope you enjoy it as much as I enjoyed making it."],
+   "contents": "PARTS & BOXES",
+   "pickup": "READY FOR PICKUP",
+   "qctitle": "QUALITY CHECK",
+   "qcsteps": ["Sizes and fit checked","Surface and layers look clean","Supports and strings removed","Colour matches the order","No cracks or weak spots","Quantity matches the order"],
+   "checkedby": "Checked by / date"
   },
   "nl": {
    "box": "DOOS",
@@ -190,7 +204,21 @@ window.LABEL_DEFAULTS={
    "ticket": "OPDRACHTKAART",
    "steps": "INPAKLIJST",
    "packsteps": ["Onderdelen geteld en gecontroleerd","Steunmateriaal verwijderd, randen schoon","Kwaliteitscontrole met de hand","Onderdelen gezakt en ingepakt","Papieren en labels in de doos","Dozen gesloten en gelabeld"],
-   "pass": "PRINT-PASPOORT"
+   "pass": "PRINT-PASPOORT",
+   "heat": "UIT DE BUURT VAN WARMTE",
+   "heat2": "Niet in een warme auto of in de zon.",
+   "dry": "DROOG HOUDEN",
+   "dry2": "Op een droge plek bewaren.",
+   "openhere": "HIER OPENEN",
+   "giftto": "Voor",
+   "giftfrom": "Van",
+   "visit": "BEZOEK ONS ONLINE",
+   "postcard": ["Bedankt dat je voor een print op maat hebt gekozen.","Ik hoop dat je er net zoveel plezier van hebt als ik had bij het maken."],
+   "contents": "ONDERDELEN & DOZEN",
+   "pickup": "KLAAR OM OP TE HALEN",
+   "qctitle": "KWALITEITSCONTROLE",
+   "qcsteps": ["Maten en pasvorm gecontroleerd","Oppervlak en lagen zien er netjes uit","Steunmateriaal en draadjes weg","Kleur klopt met de bestelling","Geen scheurtjes of zwakke plekken","Aantal klopt met de bestelling"],
+   "checkedby": "Gecontroleerd door / datum"
   }
  },
  "templates": [
@@ -511,7 +539,7 @@ window.LABEL_DEFAULTS={
     {"k":"text","x":16,"y":175,"text":"{{t.yo}}","z":2.7,"b":1,"f":"mu","if":"summary"},
     {"k":"text","x":16,"y":183,"text":"{{name}}","z":5,"fit":116,"b":1,"if":"summary"},
     {"k":"text","x":16,"y":190,"text":"#{{id}}  ·  {{allpieces}} {{t.parts}}  ·  {{boxes}} {{boxes>1?t.boxes:t.box1}}","z":3.4,"cut":116,"f":"mu","if":"summary"},
-    {"k":"text","x":"W/2","y":205,"text":"{{brand.footer}}","z":2.8,"a":"m","f":"mu"}
+    {"k":"text","x":"W/2","y":205,"text":"{{brand.footer}}{{brand.web?'  ·  '+brand.web:''}}","z":2.8,"a":"m","f":"mu","cut":128}
    ]
   },
   {
@@ -528,7 +556,7 @@ window.LABEL_DEFAULTS={
     {"k":"rect","x":8,"y":26,"w":"W-16","h":1.4,"f":"ac"},
     {"k":"text","x":8,"y":38,"text":"{{t.care}}","z":6,"fit":"W-16","b":1},
     {"k":"tips","x":14,"bx":9,"y":48,"w":"W-24","y2":"H-14","z":3.8},
-    {"k":"text","x":"W/2","y":"H-7","text":"{{brand.footer}}","z":2.8,"a":"m","f":"mu"}
+    {"k":"text","x":"W/2","y":"H-7","text":"{{brand.footer}}{{brand.web?'  ·  '+brand.web:''}}","z":2.8,"a":"m","f":"mu","cut":"W-10"}
    ]
   },
   {
@@ -830,6 +858,313 @@ window.LABEL_DEFAULTS={
     {"k":"checks","x":8,"y":62,"w":"W-16","list":"t.packsteps","z":4,"gap":4.2},
     {"k":"bars","x":8,"y":"H-24","w":50,"h":9},
     {"k":"text","x":8,"y":"H-9","text":"{{allpieces}} {{t.parts}}  ·  {{boxes}} {{boxes>1?t.boxes:t.box1}}","z":3.4,"f":"mu"}
+   ]
+  },
+  {
+   "id": "heatwarn",
+   "name": "Keep away from heat",
+   "group": "outside",
+   "per": "box",
+   "w": 80,
+   "h": 50,
+   "on": 0,
+   "desc": "Sun icon and a heat warning (PLA softens in a hot car).",
+   "elements": [
+    {"k":"rect","x":1,"y":1,"w":"W-2","h":"H-2","s":"ac","sw":1.2,"r":4},
+    {"k":"poly","p":[[23.5,22.0],[23.34,23.45],[22.86,24.82],[22.08,26.05],[21.05,27.08],[19.82,27.86],[18.45,28.34],[17.0,28.5],[15.55,28.34],[14.18,27.86],[12.95,27.08],[11.92,26.05],[11.14,24.82],[10.66,23.45],[10.5,22.0],[10.66,20.55],[11.14,19.18],[11.92,17.95],[12.95,16.92],[14.18,16.14],[15.55,15.66],[17.0,15.5],[18.45,15.66],[19.82,16.14],[21.05,16.92],[22.08,17.95],[22.86,19.18],[23.34,20.55]],"f":"ac"},
+    {"k":"line","x":26.5,"y":22.0,"x2":30.5,"y2":22.0,"s":"ac","sw":1.3},
+    {"k":"line","x":23.72,"y":28.72,"x2":26.55,"y2":31.55,"s":"ac","sw":1.3},
+    {"k":"line","x":17.0,"y":31.5,"x2":17.0,"y2":35.5,"s":"ac","sw":1.3},
+    {"k":"line","x":10.28,"y":28.72,"x2":7.45,"y2":31.55,"s":"ac","sw":1.3},
+    {"k":"line","x":7.5,"y":22.0,"x2":3.5,"y2":22.0,"s":"ac","sw":1.3},
+    {"k":"line","x":10.28,"y":15.28,"x2":7.45,"y2":12.45,"s":"ac","sw":1.3},
+    {"k":"line","x":17.0,"y":12.5,"x2":17.0,"y2":8.5,"s":"ac","sw":1.3},
+    {"k":"line","x":23.72,"y":15.28,"x2":26.55,"y2":12.45,"s":"ac","sw":1.3},
+    {"k":"text","x":36,"y":19,"text":"{{t.heat}}","z":6.4,"fit":40,"b":1,"f":"ac"},
+    {"k":"para","x":36,"y":26,"w":40,"text":"{{t.heat2}}","z":3.6,"lh":4.6},
+    {"k":"text","x":8,"y":"H-6","text":"{{t.box}} {{box}}/{{boxes}}  ·  #{{id}}","z":3,"fit":"W-16","f":"mu"}
+   ]
+  },
+  {
+   "id": "keepdry",
+   "name": "Keep dry",
+   "group": "outside",
+   "per": "box",
+   "w": 80,
+   "h": 50,
+   "on": 0,
+   "desc": "Water drop icon and a keep-dry note.",
+   "elements": [
+    {"k":"rect","x":1,"y":1,"w":"W-2","h":"H-2","s":"ac","sw":1.2,"r":4},
+    {"k":"poly","p":[[17,9],[24.64,21.24],[25.36,22.66],[25.81,24.18],[26.0,25.77],[25.9,27.36],[25.52,28.91],[24.87,30.37],[23.98,31.69],[22.86,32.83],[21.57,33.76],[20.13,34.44],[18.59,34.86],[17.0,35.0],[15.41,34.86],[13.87,34.44],[12.43,33.76],[11.14,32.83],[10.02,31.69],[9.13,30.37],[8.48,28.91],[8.1,27.36],[8.0,25.77],[8.19,24.18],[8.64,22.66],[9.36,21.24]],"f":"ac"},
+    {"k":"text","x":36,"y":19,"text":"{{t.dry}}","z":8,"fit":40,"b":1,"f":"ac"},
+    {"k":"para","x":36,"y":26,"w":40,"text":"{{t.dry2}}","z":3.6,"lh":4.6},
+    {"k":"text","x":8,"y":"H-6","text":"{{t.box}} {{box}}/{{boxes}}  ·  #{{id}}","z":3,"fit":"W-16","f":"mu"}
+   ]
+  },
+  {
+   "id": "openhere",
+   "name": "Open here",
+   "group": "outside",
+   "per": "box",
+   "w": 90,
+   "h": 28,
+   "on": 0,
+   "desc": "Arrow, 'open here' and a cut line with scissors, for the lid.",
+   "elements": [
+    {"k":"rect","x":0.5,"y":0.5,"w":"W-1","h":"H-1","s":"ink","sw":0.5,"r":3},
+    {"k":"poly","p":[[6,14],[18,5],[18,10],[26,10],[26,18],[18,18],[18,23]],"f":"ac"},
+    {"k":"text","x":32,"y":15,"text":"{{t.openhere}}","z":8,"fit":54,"b":1},
+    {"k":"text","x":32,"y":22,"text":"{{t.box}} {{box}}/{{boxes}}","z":3,"f":"mu"},
+    {"k":"line","x":2,"y":"H-2.5","x2":"W-2","y2":"H-2.5","s":"ink","sw":0.4,"d":[2,1.3]}
+   ]
+  },
+  {
+   "id": "giftto",
+   "name": "Gift tag",
+   "group": "outside",
+   "per": "once",
+   "w": 80,
+   "h": 50,
+   "on": 0,
+   "desc": "Small tag with To and From lines (pre-filled with the customer and your signature).",
+   "elements": [
+    {"k":"rect","x":0.5,"y":0.5,"w":"W-1","h":"H-1","s":"ink","sw":0.5,"r":3},
+    {"k":"rect","x":"W-9","y":4,"w":5,"h":5,"s":"ink","sw":0.5,"r":2.5},
+    {"k":"heart","x":13,"y":10,"s":7,"f":"ac"},
+    {"k":"text","x":8,"y":25,"text":"{{t.giftto}}","z":3.4,"b":1,"f":"mu"},
+    {"k":"text","x":20,"y":25,"text":"{{customer}}","z":5.4,"fit":"W-34","b":1},
+    {"k":"line","x":19,"y":27,"x2":"W-8","y2":27,"s":"ln","sw":0.3},
+    {"k":"text","x":8,"y":40,"text":"{{t.giftfrom}}","z":3.4,"b":1,"f":"mu"},
+    {"k":"text","x":24,"y":40,"text":"{{brand.sign}}","z":5.4,"fit":"W-38","b":1,"f":"ac"},
+    {"k":"line","x":23,"y":42,"x2":"W-8","y2":42,"s":"ln","sw":0.3}
+   ]
+  },
+  {
+   "id": "banner",
+   "name": "Brand banner strip",
+   "group": "outside",
+   "per": "once",
+   "w": "length",
+   "h": 40,
+   "on": 0,
+   "desc": "Long strip for the side of a box: big logo and your website.",
+   "vars": {
+    "length": {
+     "label": "Length (mm)",
+     "v": 240,
+     "min": 100,
+     "max": 500,
+     "step": 5
+    }
+   },
+   "elements": [
+    {"k":"rect","x":0,"y":0,"w":"W","h":2,"f":"ac"},
+    {"k":"rect","x":0,"y":"H-2","w":"W","h":2,"f":"ac"},
+    {"k":"logo","x":10,"y":8,"h":24},
+    {"k":"text","x":"W-10","y":23,"text":"{{brand.web||brand.name}}","z":9,"fit":"W-130","b":1,"a":"r"},
+    {"k":"text","x":"W-10","y":31,"text":"{{brand.tagline}}","z":2.8,"fit":"W-130","a":"r","f":"mu"}
+   ]
+  },
+  {
+   "id": "fragilestrip",
+   "name": "Fragile tape strip",
+   "group": "outside",
+   "per": "once",
+   "w": "length",
+   "h": 18,
+   "on": 0,
+   "desc": "Strip with FRAGILE · HANDLE WITH CARE repeated. White text on the accent colour.",
+   "vars": {
+    "length": {
+     "label": "Length (mm)",
+     "v": 200,
+     "min": 60,
+     "max": 400,
+     "step": 5
+    },
+    "step": {
+     "label": "Space between repeats (mm)",
+     "v": 90,
+     "min": 60,
+     "max": 160,
+     "step": 1
+    }
+   },
+   "elements": [
+    {"k":"rect","x":0,"y":0,"w":"W","h":"H","f":"ac"},
+    {"k":"rep","v":"x","from":6,"to":"W-70","step":"step","items":[{"k":"text","x":"x","y":11.2,"text":"{{t.fragile}}  ·  {{t.handle}}","z":4,"b":1,"f":"wh"}]}
+   ]
+  },
+  {
+   "id": "lovesticker",
+   "name": "Heart sticker (round)",
+   "group": "inside",
+   "per": "once",
+   "w": 40,
+   "h": 40,
+   "on": 0,
+   "desc": "Round 'made with love' sticker with a heart.",
+   "elements": [
+    {"k":"rect","x":0.5,"y":0.5,"w":39,"h":39,"s":"ac","sw":1,"r":19.5},
+    {"k":"heart","x":20,"y":16,"s":16,"f":"ac"},
+    {"k":"text","x":20,"y":29,"text":"{{t.madewith}}","z":2.8,"fit":30,"b":1,"a":"m"},
+    {"k":"text","x":20,"y":34,"text":"{{brand.name}}","z":2.4,"fit":28,"a":"m","f":"mu"}
+   ]
+  },
+  {
+   "id": "dot",
+   "name": "Seal dot (round)",
+   "group": "outside",
+   "per": "once",
+   "w": 25,
+   "h": 25,
+   "on": 0,
+   "desc": "Tiny round sticker with just the logo mark, for closing bags or tissue paper.",
+   "elements": [
+    {"k":"rect","x":0.4,"y":0.4,"w":24.2,"h":24.2,"s":"ink","sw":0.4,"r":12.1},
+    {"k":"logo","x":"W/2-6.5","y":3.6,"h":13,"mark":1},
+    {"k":"text","x":"W/2","y":21.5,"text":"{{upper(brand.name)}}","z":2.3,"fit":18,"b":1,"a":"m","f":"mu"}
+   ]
+  },
+  {
+   "id": "website",
+   "name": "Website sticker",
+   "group": "outside",
+   "per": "once",
+   "w": 60,
+   "h": 20,
+   "on": 0,
+   "desc": "Small sticker that points to your website.",
+   "elements": [
+    {"k":"rect","x":0.5,"y":0.5,"w":"W-1","h":"H-1","s":"ink","sw":0.5,"r":3},
+    {"k":"text","x":"W/2","y":7.5,"text":"{{t.visit}}","z":2.6,"b":1,"a":"m","f":"mu"},
+    {"k":"text","x":"W/2","y":14.5,"text":"{{brand.web||brand.name}}","z":5,"fit":"W-8","b":1,"a":"m","f":"ac"}
+   ]
+  },
+  {
+   "id": "postcard",
+   "name": "Thank-you postcard",
+   "group": "inside",
+   "per": "once",
+   "w": 148,
+   "h": 105,
+   "on": 0,
+   "desc": "A6 landscape postcard with a big thank you and room for a handwritten line.",
+   "elements": [
+    {"k":"logo","x":10,"y":10,"h":15},
+    {"k":"text","x":"W-10","y":17,"text":"{{today}}","z":3.4,"a":"r","f":"mu"},
+    {"k":"rect","x":10,"y":31,"w":"W-20","h":1.4,"f":"ac"},
+    {"k":"text","x":10,"y":56,"text":"{{t.thankyou}}","z":15,"fit":90,"b":1,"f":"ac"},
+    {"k":"heart","x":"W-22","y":48,"s":10,"f":"ac"},
+    {"k":"paras","x":10,"y":68,"w":110,"list":"t.postcard","z":4.2,"lh":5.6,"gap":2},
+    {"k":"line","x":10,"y":"H-16","x2":"W-60","y2":"H-16","s":"ln","sw":0.3},
+    {"k":"text","x":"W-10","y":"H-10","text":"{{brand.sign}}","z":6,"b":1,"a":"r","f":"ac"},
+    {"k":"text","x":10,"y":"H-8","text":"{{brand.web}}","z":3.6,"f":"mu","cut":70,"if":"brand.web"}
+   ]
+  },
+  {
+   "id": "thanksmini",
+   "name": "Mini thank-you card",
+   "group": "inside",
+   "per": "once",
+   "w": 85,
+   "h": 55,
+   "on": 0,
+   "desc": "Business-card sized thank-you with your website.",
+   "elements": [
+    {"k":"rect","x":0.5,"y":0.5,"w":"W-1","h":"H-1","s":"ink","sw":0.4,"r":3},
+    {"k":"logo","x":6,"y":6,"h":10},
+    {"k":"heart","x":"W-12","y":11,"s":6,"f":"ac"},
+    {"k":"text","x":6,"y":34,"text":"{{t.thankyou}}","z":11,"fit":"W-12","b":1,"f":"ac"},
+    {"k":"text","x":6,"y":41,"text":"{{t.printed}}","z":3.4,"fit":"W-12","f":"mu"},
+    {"k":"text","x":6,"y":"H-5","text":"{{brand.web}}","z":3.6,"b":1,"cut":"W-12","if":"brand.web"}
+   ]
+  },
+  {
+   "id": "bookmark",
+   "name": "Bookmark",
+   "group": "inside",
+   "per": "once",
+   "w": 50,
+   "h": 150,
+   "on": 0,
+   "desc": "Tall thank-you bookmark with the logo, a heart and your website.",
+   "elements": [
+    {"k":"rect","x":0,"y":0,"w":"W","h":3,"f":"ac"},
+    {"k":"logo","x":"W/2-11","y":14,"h":22,"mark":1},
+    {"k":"text","x":"W/2","y":56,"text":"@wordmark","z":8,"fit":"W-8","a":"m"},
+    {"k":"line","x":10,"y":64,"x2":"W-10","y2":64,"s":"ln","sw":0.3},
+    {"k":"text","x":"W/2","y":84,"text":"{{t.thankyou}}","z":9,"fit":"W-8","b":1,"a":"m","f":"ac"},
+    {"k":"para","x":"W/2","y":94,"w":"W-12","text":"{{t.printed}}","z":3.4,"lh":4.4,"a":"m","f":"mu"},
+    {"k":"heart","x":"W/2","y":118,"s":10,"f":"ac"},
+    {"k":"text","x":"W/2","y":"H-12","text":"{{brand.web}}","z":3.2,"fit":"W-6","a":"m","b":1,"if":"brand.web"},
+    {"k":"rect","x":0,"y":"H-3","w":"W","h":3,"f":"ac"}
+   ]
+  },
+  {
+   "id": "contents",
+   "name": "Parts & boxes overview",
+   "group": "inside",
+   "per": "once",
+   "w": 148,
+   "h": 210,
+   "on": 0,
+   "desc": "One sheet listing every part and the box it goes in. Handy when an order ships in several boxes.",
+   "elements": [
+    {"k":"logo","x":10,"y":10,"h":15},
+    {"k":"text","x":"W-10","y":17,"text":"{{t.contents}}","z":6.5,"b":1,"a":"r"},
+    {"k":"text","x":"W-10","y":25,"text":"{{boxes}} {{boxes>1?t.boxes:t.box1}}","z":4.5,"b":1,"a":"r","f":"ac"},
+    {"k":"rect","x":10,"y":31,"w":"W-20","h":1.6,"f":"ac"},
+    {"k":"text","x":10,"y":41,"text":"{{name}}","z":6,"fit":128,"b":1},
+    {"k":"text","x":10,"y":47,"text":"{{idline}}","z":3.5,"cut":128,"f":"mu"},
+    {"k":"parts","style":"boxed","x":10,"y":62,"w":128,"y2":190,"z":4.6},
+    {"k":"text","x":10,"y":"H-8","text":"{{allpieces}} {{t.parts}}","z":3.6,"f":"mu"},
+    {"k":"bars","x":"W-60","y":"H-18","w":50,"h":9},
+    {"k":"text","x":"W-10","y":"H-4","text":"{{id}}","z":3,"b":1,"a":"r"}
+   ]
+  },
+  {
+   "id": "pickup",
+   "name": "Pickup tag",
+   "group": "workshop",
+   "per": "once",
+   "w": 100,
+   "h": 70,
+   "on": 0,
+   "desc": "Tag for finished orders waiting for pickup: customer, order, pieces and barcode.",
+   "elements": [
+    {"k":"rect","x":0.5,"y":0.5,"w":"W-1","h":"H-1","s":"ink","sw":0.5,"r":3},
+    {"k":"rect","x":0.5,"y":0.5,"w":"W-1","h":17,"f":"ac","r":3},
+    {"k":"rect","x":0.5,"y":10,"w":"W-1","h":8,"f":"ac"},
+    {"k":"text","x":"W/2","y":12.5,"text":"{{t.pickup}}","z":8,"fit":90,"b":1,"a":"m","f":"wh"},
+    {"k":"text","x":5,"y":30,"text":"{{customer||name}}","z":7.5,"fit":90,"b":1},
+    {"k":"text","x":5,"y":37.5,"text":"{{name}}","z":4.4,"fit":90,"f":"mu","if":"customer"},
+    {"k":"text","x":5,"y":44,"text":"#{{id}}  ·  {{allpieces}} {{t.parts}}  ·  {{boxes}} {{boxes>1?t.boxes:t.box1}}","z":3.4,"cut":90,"f":"mu"},
+    {"k":"bars","x":5,"y":50,"w":55,"h":11},
+    {"k":"text","x":"W-5","y":58,"text":"{{today}}","z":3.2,"a":"r","f":"mu"},
+    {"k":"text","x":"W-5","y":64,"text":"{{brand.web}}","z":3,"a":"r","b":1,"cut":45,"if":"brand.web"}
+   ]
+  },
+  {
+   "id": "qcsheet",
+   "name": "Quality check sheet",
+   "group": "workshop",
+   "per": "once",
+   "w": 105,
+   "h": 148,
+   "on": 0,
+   "desc": "Internal tick-box list for checking the finished parts, with sign-off line.",
+   "elements": [
+    {"k":"logo","x":8,"y":8,"h":12},
+    {"k":"text","x":"W-8","y":14,"text":"{{today}}","z":3.2,"a":"r","f":"mu"},
+    {"k":"rect","x":8,"y":26,"w":"W-16","h":1.4,"f":"ac"},
+    {"k":"text","x":8,"y":37,"text":"{{t.qctitle}}","z":5.6,"fit":"W-16","b":1},
+    {"k":"text","x":8,"y":44,"text":"{{name}}","z":4,"fit":"W-16","b":1},
+    {"k":"text","x":8,"y":49.5,"text":"{{idline}}","z":3,"fit":"W-16","f":"mu"},
+    {"k":"checks","x":8,"y":62,"w":"W-16","list":"t.qcsteps","z":4,"gap":4.2},
+    {"k":"text","x":8,"y":"H-16","text":"{{t.checkedby}}","z":3,"f":"mu"},
+    {"k":"line","x":8,"y":"H-8","x2":"W-8","y2":"H-8","s":"ink","sw":0.3}
    ]
   }
  ]
