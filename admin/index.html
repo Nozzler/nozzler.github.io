@@ -193,6 +193,37 @@ function quoteBase(){const c=calc(),i=(k,l,t="number",s="")=>`<div><label>${l}</
   <div><label>Voucher</label><select data-q="v"><option value="">(none)</option>${vch().map(v=>`<option value="${v[0]}" ${v[0]==Q.v?"selected":""}>${v[0]} · ${esc(v[2])}</option>`)}</select></div>${i("tip","Tip (€)")}</div>
   <div class="card" style="background:var(--bg);margin:0 0 12px;padding:12px"><label>Queue &amp; delivery</label><div class="f" style="margin:8px 0 0"><div><label>Priority</label><select data-q="pr">${Object.keys(PRI).map(k=>`<option value="${k}" ${k==Q.pr?"selected":""}>${PRI[k][0]}</option>`)}</select></div>${i("dd","Needed by","date")}${i("tm","Time (optional)","time")}<div><label>Delivery</label><select data-q="dm">${Object.keys(DLM).map(k=>`<option value="${k}" ${k==Q.dm?"selected":""}>${DLM[k]}</option>`)}</select></div>${i("dl","Where","text",'list="locs" placeholder="Address, room, pickup spot…"')}</div></div>
   ${acctBox(c)}${sumRows(c)}<button class="btn" data-a="sv">Save bill</button> <button class="btn g" data-a="sq">Save as quote &amp; send</button>${Q.rb?` <button class="btn" data-a="rb">Update bill ${Q.rb} with this price</button>`:""}</div></div>`}
+function settings(){
+  const cfg=CF();
+  return`<div class="settings-panel open">
+    <div class="settings-section">
+      <h3>Brand & appearance</h3>
+      <div class="settings-row"><label>Shop name</label><div class="control"><input data-c="shop" value="${esc(cfg.shop)}" placeholder="3D Print Desk"></div></div>
+      <div class="settings-row"><label>Footer text</label><div class="control"><input data-c="foot" value="${esc(cfg.foot)}" placeholder="Powered by Nozzler"></div></div>
+      <div class="settings-row"><label>Default language</label><div class="control"><select data-c="lang"><option value="en" ${cfg.lang=="en"?"selected":""}>English</option><option value="nl" ${cfg.lang=="nl"?"selected":""}>Nederlands</option></select></div></div>
+      <div class="settings-row"><label>VAT % (shown on receipts)</label><div class="control"><input type="number" data-c="vat" min="0" max="100" step="0.1" value="${cfg.vat||0}"></div></div>
+    </div>
+    <div class="settings-section">
+      <h3>Queue & deadlines</h3>
+      <div class="settings-row"><label>Overdue after (days)</label><div class="control"><input type="number" data-c="od" min="1" max="60" value="${cfg.od||14}"></div></div>
+      <div class="settings-row"><label>Printer hours / day (for ETA)</label><div class="control"><input type="number" data-c="pd" min="1" max="24" value="${cfg.pd||16}"></div></div>
+    </div>
+    <div class="settings-section">
+      <h3>Receipt & print layout</h3>
+      <div class="settings-row"><label>Paper width (mm)</label><div class="control"><input type="number" data-c="rw" min="50" max="200" step="1" value="${cfg.rw||80}"></div></div>
+      <div class="settings-row"><label>Show VAT breakdown on receipt</label><div class="control"><label class="lbchk"><input type="checkbox" data-c="vatShow" ${(cfg.vatShow||cfg.vat)>0?"checked":""}> Enabled</label></div></div>
+    </div>
+    <div class="settings-section">
+      <h3>Data & sync</h3>
+      <div class="settings-row"><label>Auto-sync to cloud</label><div class="control"><label class="lbchk"><input type="checkbox" id="autoSync" ${M().autoSync?"checked":""}> Enabled</label></div></div>
+      <div class="settings-row"><label>Sync interval</label><div class="control"><select id="syncInterval"><option value="15" ${M().syncInterval==15?"selected":""}>15 seconds</option><option value="30" ${M().syncInterval==30?"selected":""}>30 seconds</option><option value="60" ${M().syncInterval==60?"selected":""}>60 seconds</option></select></div></div>
+    </div>
+    <div class="settings-section">
+      <h3>Danger zone</h3>
+      <div class="row"><button class="btn g" data-a="ex">Export all data (JSON)</button><button class="btn g" data-a="csv">Copy bills as CSV</button><button class="btn er" data-a="rs" style="margin-left:auto">Reset all data</button></div>
+    </div>
+  </div>`;
+}
 function dataBase(){return`<div class="card"><h2>Backup &amp; restore</h2><p class="mu">Everything is stored in this browser. Copy the JSON as a backup, or paste a backup here to restore it. Pasting cards.json also works.</p>
   <div class="row"><button class="btn" data-a="ex">Copy JSON</button><button class="btn g" data-a="csv">Copy bills as CSV</button><button class="btn g" data-a="im">Load from box</button><input type="file" id="jf" accept=".json"><button class="btn g" data-a="rs">Reset to original</button></div><textarea id="tx" rows="10" class="mono" style="font-size:12px"></textarea></div>`}
 function card(c){const x=T[c[1]],bars=[...c[0]].map((ch,i)=>`<rect x="${20+i*18}" y="150" width="${2+(AL.indexOf(ch)%4)*2}" height="30" fill="#fff"/>`).join("");
@@ -208,13 +239,17 @@ function am(id){const a=find(id);return`<h2>${esc(a[0])}</h2><p class="mu">Since
   <div class="row"><input id="tu" type="number" min="0" placeholder="Top up €"><button class="btn" data-a="t:${a[0]}">Top up</button></div>${tbl(["Bill","Due",""],S.bills.filter(b=>b[3].toUpperCase()==a[0].toUpperCase()).map(b=>({a:"b:"+b[0],c:[esc(b[1]),E(b[5]),b[6]?"✓":"open"]})),[1])}<h2 style="margin-top:14px">Buy points (€5 = 25 pts, from balance)</h2><div class="row"><input id="bp" type="number" min="5" step="5" placeholder="€"><button class="btn" data-a="bp:${a[0]}">Buy</button></div><div class="row"><button class="btn g" data-a="st:${a[0]}">Copy statement</button><button class="btn g" data-a="ap:${a[0]}">Mark all open paid</button></div><p><button class="btn g" data-a="da:${a[0]}">Delete account</button> <button class="btn g" data-a="x">Close</button></p>`}
 function cm(s){const c=S.cards.find(x=>x[0]==s);return`${card(c)}<div class="row" style="margin-top:12px"><button class="btn g" data-a="k:${s}">Copy serial</button>${T[c[1]]&&T[c[1]][2]=="voucher"&&!T[c[1]][4]?`<button class="btn g" data-a="u:${s}">${c[4]?"Restore":"Mark used"}</button>`:""}<button class="btn g" data-a="e3:${s}">Export 3MF</button><button class="btn g" data-a="dc:${s}">Delete</button><button class="btn g" data-a="x">Close</button></div>`}
 function render(){$("#nav").innerHTML=TABS.map(t=>`<button class="${t==tab?"on":""}" data-a="t_${t}">${t}${t=="Queue"&&S.bills.some(isAct)?` <span class="tag">${S.bills.filter(isAct).length}</span>`:""}</button>`).join("");
-  $("#app").innerHTML={Dashboard:dash,Bills:bills,Queue:queueView,Labels:()=>typeof labelView=="function"?labelView():"",Requests:()=>typeof reqView=="function"?reqView():"",Customers:()=>typeof custView=="function"?custView():"",Colors:()=>typeof colView=="function"?colView():"",Cards:cards,Accounts:accts,Quote:quote,History:hist,Scan:scan,Settings:data}[tab]();
+  $("#app").innerHTML={Dashboard:dash,Bills:bills,Queue:queueView,Labels:()=>typeof labelView=="function"?labelView():"",Requests:()=>typeof reqView=="function"?reqView():"",Customers:()=>typeof custView=="function"?custView():"",Colors:()=>typeof colView=="function"?colView():"",Cards:cards,Accounts:accts,Quote:quote,History:hist,Scan:scan,Settings:settings}[tab]();
   $("#locs").innerHTML=locOpts();
   $("#md").innerHTML=modal?`<div class="ov" data-a="x"><div class="pn">${modal}</div></div>`:"";
   const i=$("#q");if(i)i.oninput=()=>{q=i.value;const p=i.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
   const f=$("#fl");if(f)f.onchange=()=>{fl=f.value;render()};const pe=$("#per");if(pe)pe.onchange=()=>{per=pe.value;render()};const sq=$("#so");if(sq)sq.onchange=()=>{so=sq.value;render()};
   const d=$("#dz");if(d){d.onclick=()=>$("#gf").click();$("#gf").onchange=e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)loadGFiles(fs,!!(Q.plates&&Q.plates.length))};d.ondragover=e=>{e.preventDefault();d.classList.add("h")};d.ondragleave=()=>d.classList.remove("h");d.ondrop=e=>{e.preventDefault();d.classList.remove("h");if(e.dataTransfer.files&&e.dataTransfer.files.length)loadGFiles([...e.dataTransfer.files],!!(Q.plates&&Q.plates.length))}}
   const j=$("#jf");if(j)j.onchange=async e=>{$("#tx").value=await e.target.files[0].text()}}
+  // Settings form handlers
+  $$(".settings-row [data-c]").forEach(el=>{el.onchange=()=>{const c=el.dataset.c;if(el.type=="checkbox")S.cfg[c]=el.checked;else if(el.type=="number")S.cfg[c]=+el.value;else S.cfg[c]=el.value;save();toast("Saved");render()}});
+  const as=$("#autoSync");if(as)as.onchange=()=>{const m=M();m.autoSync=as.checked;save();toast("Saved")};
+  const si=$("#syncInterval");if(si)si.onchange=()=>{const m=M();m.syncInterval=+si.value;save();toast("Saved")};
 document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!el)return;if(el.classList.contains("ov")&&e.target!=el)return;const a=el.dataset.a,[k,x,y]=a.split(":");
   if(a.startsWith("t_")){stopCam();tab=a.slice(2);q="";fl="all";location.hash=tab;modal="";return render()}
   if(a=="th"){const r=document.documentElement,cur=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");r.dataset.theme=cur=="dark"?"light":"dark";try{localStorage.setItem("p3dth",r.dataset.theme)}catch(e){}return}
@@ -391,7 +426,8 @@ function anCard(){const A=Q.an;if(!A)return"";const I=Q.info||{},ps=I.ps||{},sf=
   <div class="two" style="margin:14px 0 0"><div><h2>Where the filament goes</h2>${ft.slice(0,9).map(x=>`<div class="bl"><span>${esc(x[0])}</span><div class="bar" style="width:${x[1]/tot*100}%"></div><span class="n">${(x[1]/tot*100).toFixed(0)}%</span></div>`).join("")}</div>
   <div><h2>Filaments</h2>${fs.length?tbl(["","Type","Used"],fs.map(x=>({c:[`<span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid var(--bd);background:${esc((x.c||"#888").slice(0,7))}"></span>`,esc(x.t),`${x.g.toFixed(1)} g · ${x.m.toFixed(2)} m`]}))):'<span class="mu">No slice info in file</span>'}${sf.o.length?`<p class="mu">Objects: ${esc(sf.o.join(", "))}</p>`:""}${sf.w.length?`<p class="wn">⚠ ${esc(sf.w.join("; "))}</p>`:""}</div></div>
   ${pls.length>1?tbl(["Plate","Object","Material","Weight","Time","Layers"],pls.map(p=>({c:[`Plate ${p.plateNum}`,esc(p.name),esc(p.m||Q.m),p.w.toFixed(1)+" g",h(p.t),p.L||"-"]})),[3,4]):""}</div>`}
-const CF=()=>(S.cfg=Object.assign({shop:"3D Print Desk",foot:"",lang:"en",vat:0,od:14,pd:16},S.cfg)),hm=m=>Math.floor(m/60)+"h "+Math.round(m%60)+"m",ageD=d=>Math.floor((Date.now()-new Date(d))/864e5);
+const CF=()=>(S.cfg=Object.assign({shop:"3D Print Desk",foot:"",lang:"en",vat:0,od:14,pd:16,rw:80,vatShow:false},S.cfg)),hm=m=>Math.floor(m/60)+"h "+Math.round(m%60)+"m",ageD=d=>Math.floor((Date.now()-new Date(d))/864e5);
+const M=()=>(S.meta=Object.assign({autoSync:false,syncInterval:30},S.meta));
 let lastGen=[],per="all",rcImg="",rcFor="",lastBill="";
 const ageTxt=d=>{const n=ageD(d);return n>CF().od?` · ${n}d overdue`:""};
 const inP=b=>per=="all"||(per=="month"?b[2].slice(0,7)==today().slice(0,7):per=="30d"?ageD(b[2])<=30:b[2].slice(0,4)==today().slice(0,4));
