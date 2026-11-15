@@ -249,7 +249,7 @@ function render(){$("#nav").innerHTML=TABS.map(t=>`<button class="${t==tab?"on":
   // Settings form handlers
   $$(".settings-row [data-c]").forEach(el=>{el.onchange=()=>{const c=el.dataset.c;if(el.type=="checkbox")S.cfg[c]=el.checked;else if(el.type=="number")S.cfg[c]=+el.value;else S.cfg[c]=el.value;save();toast("Saved");render()}});
   const as=$("#autoSync");if(as)as.onchange=()=>{const m=M();m.autoSync=as.checked;save();toast("Saved")};
-  const si=$("#syncInterval");if(si)si.onchange=()=>{const m=M();m.syncInterval=+si.value;save();toast("Saved")};
+  const syncIntervalEl=$("#syncInterval");if(syncIntervalEl)syncIntervalEl.onchange=()=>{const m=M();m.syncInterval=+syncIntervalEl.value;save();toast("Saved")};
 document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!el)return;if(el.classList.contains("ov")&&e.target!=el)return;const a=el.dataset.a,[k,x,y]=a.split(":");
   if(a.startsWith("t_")){stopCam();tab=a.slice(2);q="";fl="all";location.hash=tab;modal="";return render()}
   if(a=="th"){const r=document.documentElement,cur=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");r.dataset.theme=cur=="dark"?"light":"dark";try{localStorage.setItem("p3dth",r.dataset.theme)}catch(e){}return}
