@@ -108,13 +108,20 @@ const tvars=(t,u)=>{const o={};for(const[k,d]of Object.entries(t.vars||{})){cons
 const billOf=id=>S.bills.find(b=>b[0]==id),REQS=()=>typeof REQ!="undefined"?REQ:[],PROS=()=>typeof PRO!="undefined"?PRO:{};
 const reqOf=b=>(b[17]&&REQS().find(r=>r.id==b[17]))||REQS().find(r=>r.bill_id&&r.bill_id==b[0]);
 const cust=b=>{const r=reqOf(b),p=r?(r.contact||PROS()[r.user_id]||{}):{},d=b[16]||{};return{name:p.name||"",where:d.loc||(r&&r.delivery_where)||""}};
-/* Parts come from the order by themselves: the customer's items first (name, qty, colour, material), else the print plates, else the bill.
+/* Parts come from the order by themselves: the customer’s items first (name, qty, colour, material), else the print plates, else the bill.
    Box choices are kept by part name when the order changes; parts you add by hand stay; editing an order part by hand switches to manual until "Sync with order". */
 const defParts=b=>{const m=b[11]||{},pl=m.plates||[],r=reqOf(b),it=r&&r.options&&r.options.items,mt=x=>[x.m,x.w&&x.w+" g"].filter(Boolean).join(" · ");let o,src;
  if(it&&it.length){src="the customer’s items";o=it.map(i=>({n:i.name||"Item",q:Math.max(1,+i.qty||1),x:1,d:[(i.cl||[]).map(c=>c.n).filter(Boolean).join("+")||i.colour,i.m].filter(Boolean).join(" · ")}))}
  else if(pl.length>1){src="the print plates";o=pl.map(p=>({n:p.name||"Plate "+p.plateNum,q:1,x:1,d:mt(p)}))}
  else{src="the bill";o=[{n:b[1],q:Math.max(1,(r&&r.options&&+r.options.qty)||1),x:1,d:mt(m)}]}
  o.src=src;return o};
+
+/* Wait for requests to load (async from cloud.js) then refresh labels */
+const waitForReqs=()=>new Promise(resolve=>{
+  if(typeof REQ!="undefined"&&REQ.length>0)return resolve();
+  const check=()=>{if(typeof REQ!="undefined"&&REQ.length>0){resolve()}else{setTimeout(check,100)}};
+  check();
+});
 const syncParts=(p,dp)=>{const man=p.parts.filter(o=>o.man),pool=p.parts.filter(o=>!o.man),out=[];
  for(const d of dp){const m=pool.filter(o=>o.n==d.n);m.forEach(o=>pool.splice(pool.indexOf(o),1));const sum=m.reduce((a,o)=>a+(+o.q||0),0);
   if(m.length&&sum==d.q)m.forEach(o=>out.push({...o,d:d.d}));else out.push({...d,x:Math.min(m.length?m[0].x:1,p.n)})}
@@ -279,12 +286,46 @@ const css=`.lbt{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.lbt butt
 .lbtx{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:10px}.lbdoc summary{cursor:pointer;font-weight:600}.lbdoc code{background:#8881;padding:1px 4px;border-radius:4px;font-size:12px}.lbdoc p{line-height:1.55}
 @media(max-width:640px){.lbtwo2{grid-template-columns:1fr}.lbside{flex-basis:100%}}`;
 const TABS=[["make","Make labels"],["tpl","Templates"],["look","Look & text"],["json","JSON"]];
-window.labelView=()=>{const bs=S.bills.filter(b=>b[14]!="quote");if(!bs.length)return`<div class="card mu">Make a bill first; labels are built from your bills.</div>`;
- const u=U();if(!bs.some(b=>b[0]==u.id)){const act=bs.filter(b=>((b[16]||{}).st||"")!="delivered");u.id=(act.length?act:bs).slice(-1)[0][0]}if(!TABS.some(t=>t[0]==u.tab))u.tab="make";
- const G=gen();CUR=G.items;try{LSIG=JSON.stringify(defParts(billOf(u.id)))}catch(e){}
- const body=u.tab=="tpl"?tplView(u,G):u.tab=="look"?lookView(u,G):u.tab=="json"?jsonView(u):makeView(u,bs,G);
- return`<div class="lbt">${TABS.map(([k,l])=>`<button type="button" class="${k==u.tab?"on":""}" data-lb="tab:${k}">${l}</button>`).join("")}</div>${body}`};
-const re=()=>{if(tab=="Labels"){try{const b=billOf(U().id);if(b)LSIG=JSON.stringify(defParts(b))}catch(e){}const y=window.scrollY;$("#app").innerHTML=labelView();window.scrollTo(0,y)}};
+let LABEL_LOADING=false;
+window.labelView=async()=>{
+  const bs=S.bills.filter(b=>b[14]!="quote");
+  if(!bs.length)return`<div class="card mu">Make a bill first; labels are built from your bills.</div>`;
+  const u=U();
+  if(!bs.some(b=>b[0]==u.id)){
+    const act=bs.filter(b=>((b[16]||{}).st||"")!="delivered");
+    u.id=(act.length?act:bs).slice(-1)[0][0]
+  }
+  if(!TABS.some(t=>t[0]==u.tab))u.tab="make";
+
+  // Wait for REQ data (customer items) if cloud is enabled
+  if(typeof REQ!="undefined"&&REQ.length===0&&window.cloud){
+    LABEL_LOADING=true;
+    await waitForReqs();
+    LABEL_LOADING=false;
+  }
+
+  // Auto-enable relevant templates based on order content
+  const b=billOf(u.id);
+  if(b && !u.on){
+    const pl=plan(u.id);
+    const mats=new Set([...((b[11]||{}).plates||[]).map(p=>p.m), (b[11]||{}).m].filter(Boolean));
+    const hasMultipleBoxes=pl.n>1;
+    const hasFragile=mats.has("PLA")||mats.has("TPU")||mats.has("PA");
+    const needsShipping=b[16]?.dm!=="pickup"&&b[16]?.dm;
+    const autoOn={delivery:1, top:1, seal:1, slip:1, thanks:1, care:1};
+    if(hasMultipleBoxes){autoOn.wrapseal=1; autoOn.boxno=1;}
+    if(hasFragile){autoOn.fragile=1; autoOn.up=1;}
+    if(needsShipping){autoOn.shipping=1;}
+    if(b[14]==="quote"){autoOn.reviewcard=1;}
+    for(const [id,on] of Object.entries(autoOn)){if(on && !u.on[id]) u.on[id]=1;}
+  }
+
+  const G=gen();CUR=G.items;
+  try{LSIG=JSON.stringify(defParts(billOf(u.id)))}catch(e){}
+  const body=u.tab=="tpl"?tplView(u,G):u.tab=="look"?lookView(u,G):u.tab=="json"?jsonView(u):makeView(u,bs,G);
+  return`<div class="lbt">${TABS.map(([k,l])=>`<button type="button" class="${k==u.tab?"on":""}" data-lb="tab:${k}">${l}</button>`).join("")}</div>${body}`;
+};
+const re=async()=>{if(tab=="Labels"){try{const b=billOf(U().id);if(b)LSIG=JSON.stringify(defParts(b))}catch(e){}const y=window.scrollY;$("#app").innerHTML=await labelView();window.scrollTo(0,y)}};
 const doAll=async(u)=>{const m=u.m,f=u.fmt,id=u.id,sh=slug(CF().shop);if(!CUR.length)return;toast("Preparing…");
  if(f=="pdf"){const L=[];for(const l of CUR)for(let k=0;k<l.copies;k++)L.push(l.sc);dl(new Blob([pdf(L,m)],{type:"application/pdf"}),`${sh}_${id}_labels.pdf`)}
  else if(f=="sheet"){const scs=[];for(const l of CUR)for(let k=0;k<l.copies;k++)scs.push(l.sc);if(+u.sheet.sort)scs.sort((a,b)=>b.h-a.h);const r=packSheet(scs,u.sheet);dl(new Blob([pdfPages(r.pages,m)],{type:"application/pdf"}),`${sh}_${id}_label-sheets.pdf`)}
@@ -307,14 +348,14 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-lb]
  else if(a=="cp"){const t=C0.templates.find(q=>q.id==x);u.copies[x]=Math.max(1,Math.min(99,cop(t||{id:x},u)+(+y)))}
  else if(a=="edit"){u.sel=x;u.tab="tpl"}
  else if(a=="vreset"){delete u.vars[u.sel];delete u.rot[u.sel];delete u.copies[u.sel]}
- else if(a=="tapply"){const o=parseJ($("#lbjson"),"The template");if(!o)return re();if(!o.id||!Array.isArray(o.elements)){note(false,"A template needs an id and an elements list.");return re()}
-  const keep=patch().templates,old=cfg();upsertTpl(o);try{PAL=cfg().palettes;const g=gen();const er=g.errs.find(q=>q.tpl.id==o.id);if(er)throw new Error(er.msg)}catch(err){patch().templates=keep;CM=null;note(false,"Not applied: "+err.message);return re()}
+ else if(a=="tapply"){const o=parseJ($("#lbjson"),"The template");if(!o)return await re();if(!o.id||!Array.isArray(o.elements)){note(false,"A template needs an id and an elements list.");return await re()}
+  const keep=patch().templates,old=cfg();upsertTpl(o);try{PAL=cfg().palettes;const g=gen();const er=g.errs.find(q=>q.tpl.id==o.id);if(er)throw new Error(er.msg)}catch(err){patch().templates=keep;CM=null;note(false,"Not applied: "+err.message);return await re()}
   u.sel=o.id;if(!old.templates.some(t=>t.id==o.id))u.on[o.id]=1;note(true,"Template applied.")}
  else if(a=="tdup"){const t=C0.templates.find(q=>q.id==u.sel);if(t){const n={...JSON.parse(JSON.stringify(t)),id:uid(t.id+"-copy"),name:t.name+" (copy)"};upsertTpl(n);u.sel=n.id;u.on[n.id]=1}}
  else if(a=="tnew"){const n={id:uid("custom"),name:"New label",group:"outside",per:"box",w:80,h:50,desc:"Your own label.",elements:[{k:"rect",x:1,y:1,w:"W-2",h:"H-2",s:"ink",sw:0.5,r:3},{k:"text",x:"W/2",y:20,text:"{{name}}",z:6,fit:"W-8",b:1,a:"m"},{k:"text",x:"W/2",y:30,text:"{{t.box}} {{box}}/{{boxes}}",z:4,a:"m",f:"mu"}]};upsertTpl(n);u.sel=n.id;u.on[n.id]=1}
  else if(a=="treset"){const p=patch();p.templates=(p.templates||[]).filter(t=>t.id!=u.sel);note(true,"Back to the default template.")}
  else if(a=="tdel"){if(DEF.templates.some(t=>t.id==u.sel))return;const p=patch();p.templates=(p.templates||[]).filter(t=>t.id!=u.sel);u.sel="delivery"}
- else if(a=="japply"){const o=parseJ($("#lbpatch"),"The overrides");if(!o)return re();if(!isO(o)){note(false,"Overrides must be a JSON object.");return re()}const keep=S.lblcfg;S.lblcfg=o;CM=null;try{const g=gen();if(g.errs.length)throw new Error(g.errs[0].msg)}catch(err){S.lblcfg=keep;CM=null;note(false,"Not applied: "+err.message);return re()}note(true,"Overrides applied.")}
+ else if(a=="japply"){const o=parseJ($("#lbpatch"),"The overrides");if(!o)return await re();if(!isO(o)){note(false,"Overrides must be a JSON object.");return await re()}const keep=S.lblcfg;S.lblcfg=o;CM=null;try{const g=gen();if(g.errs.length)throw new Error(g.errs[0].msg)}catch(err){S.lblcfg=keep;CM=null;note(false,"Not applied: "+err.message);return await re()}note(true,"Overrides applied.")}
  else if(a=="jdl")dl(new Blob([JSON.stringify(patch(),null,1)],{type:"application/json"}),"nozzler-labels-overrides.json");
  else if(a=="jdlfull")dl(new Blob([JSON.stringify(C0,null,1)],{type:"application/json"}),"nozzler-labels-config.json");
  else if(a=="jreset"){if(!confirm("Remove all your label customisations (templates, brand, colours, texts)?"))return;S.lblcfg={};CM=null;u.on={};u.rot={};u.copies={};u.vars={};note(true,"Everything is back to the defaults.")}
@@ -322,10 +363,10 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-lb]
  else if(a=="all"){await doAll(u);return}
  else{const l=CUR.find(q=>q.key==x);if(!l)return;
   if(a=="svg")dl(new Blob([svg(l.sc,m)],{type:"image/svg+xml"}),l.file+".svg");else if(a=="png")dl(await png(l.sc,m,+u.dpi),l.file+".png");else if(a=="pdf")dl(new Blob([pdf([l.sc],m)],{type:"application/pdf"}),l.file+".pdf");return}
- save();re()}catch(err){console.error(err);toast("Label action failed: "+(err&&err.message||err))}});
+ save();await re()}catch(err){console.error(err);toast("Label action failed: "+(err&&err.message||err))}});
 document.addEventListener("change",e=>{const el=e.target.closest("[data-lbi]");if(!el||tab!="Labels")return;const[k,x,y]=el.dataset.lbi.split(":"),v=el.value,u=U(),pl=plan(u.id);
  try{
- if(k=="imp"){const f=el.files&&el.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!isO(o))throw new Error("not a JSON object");S.lblcfg=o;CM=null;gen();note(true,"Imported "+f.name+".")}catch(err){S.lblcfg={};CM=null;note(false,"Import failed: "+err.message)}save();re()};r.readAsText(f);return}
+ if(k=="imp"){const f=el.files&&el.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const o=JSON.parse(r.result);if(!isO(o))throw new Error("not a JSON object");S.lblcfg=o;CM=null;gen();note(true,"Imported "+f.name+".")}catch(err){S.lblcfg={};CM=null;note(false,"Import failed: "+err.message)}save();await re()};r.readAsText(f);return}
  if(k=="n"){pl.n=Math.max(1,Math.min(30,+v||1));pl.parts.forEach(p=>p.x=Math.min(p.x,pl.n));pl.pp=Math.min(pl.pp,pl.n)}
  else if(k=="id")u.id=v;else if(k=="pp")pl.pp=+v;else if(k=="dpi")u.dpi=+v;
  else if(k=="p"){const p=pl.parts[+x];if(y!="x"&&!p.man)pl.manual=true;if(y=="q")p.q=Math.max(1,Math.round(+v)||1);else if(y=="x")p.x=+v;else p[y]=v}
@@ -337,13 +378,13 @@ document.addEventListener("change",e=>{const el=e.target.closest("[data-lbi]");i
  else if(k=="col")setPatch("palettes."+x+"."+y,v);
  else if(k=="tx"){const cur=(cfg().texts[x]||{})[y];setPatch("texts."+x+"."+y,Array.isArray(cur)?v.split("\n").map(s=>s.trim()).filter(Boolean):v)}
  else return;
- save();re()}catch(err){console.error(err);toast("Label setting failed: "+(err&&err.message||err))}});
+ save();await re()}catch(err){console.error(err);toast("Label setting failed: "+(err&&err.message||err))}});
 document.addEventListener("input",e=>{const el=e.target.closest("[data-lbz]");if(!el||tab!="Labels")return;const u=U();u.zoom=+el.value;const g=$(".lbg");if(g)g.style.setProperty("--z",u.zoom/100)});
 document.addEventListener("change",e=>{const el=e.target.closest("[data-lbz]");if(el&&tab=="Labels")save()});
 document.head.appendChild(Object.assign(document.createElement("style"),{textContent:css}));
 let LSIG="";
-window.labelsRefresh=()=>{if(tab!="Labels"||typeof S=="undefined")return;const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
- const b=S.bills.find(x=>x[0]==U().id);if(!b)return;const sig=JSON.stringify(defParts(b));if(sig!==LSIG){LSIG=sig;re()}};
+window.labelsRefresh=async()=>{if(tab!="Labels"||typeof S=="undefined")return;const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;
+ const b=S.bills.find(x=>x[0]==U().id);if(!b)return;const sig=JSON.stringify(defParts(b));if(sig!==LSIG){LSIG=sig;await re()}};
 window.LabelGen={ev,fx,cfg,gen,svg,pdf,pdfPages,packSheet,zip,png,rot90,PAL:()=>PAL,pick:id=>{U().id=id},_ui:U,_patch:patch};
 /* opened straight on #Labels: the first render ran before this file loaded */
 if(typeof tab!="undefined"&&tab=="Labels"&&typeof render=="function")render();
