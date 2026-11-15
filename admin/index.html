@@ -43,9 +43,12 @@ svg text{fill:var(--mu);font-size:11px}
 .pn.full{width:min(95vw,1100px)}
 
 @media print{header,main,#ts{display:none!important}.ov{position:static;background:none}.pn{width:100%;overflow:visible;padding:0}.pn>:not(.pw){display:none!important}}
-</style></head><body>
+</style></head><body class="admin">
 <header>
   <h1>3D Print <span>Desk</span></h1>
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Open navigation" style="display:none;margin-right:8px;padding:8px;background:none;border:0;cursor:pointer" data-a="sidebarOpen">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+  </button>
   <nav id="nav"></nav>
   <div class="header-search" id="headerSearch" style="display:none">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -90,6 +93,23 @@ svg text{fill:var(--mu);font-size:11px}
     </div>
   </div>
 </header>
+<div class="sidebar-overlay" id="sidebarOverlay" data-a="sidebarClose"></div>
+<aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+  <div class="sidebar-header">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+      <line x1="12" y1="22.08" x2="12" y2="12"></line>
+    </svg>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav"></nav>
+  <div class="sidebar-footer">
+    <button class="btn g s" data-a="sync" aria-label="Sync now">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+      <span>Sync Now</span>
+    </button>
+  </div>
+</aside>
 <div class="drawer-overlay" id="drawerOverlay" data-a="x"></div>
 <aside class="drawer" id="billDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
   <div class="drawer-header">
@@ -300,10 +320,10 @@ function scanViewMobile(){return`<div class="card"><h2>Scan to Find Order</h2><p
 function printViewMobile(){const act=S.bills.filter(b=>QD(b).st=="printing");return`<div class="card"><h2>Now Printing</h2>${act.length?act.map(b=>{const o=QD(b);return`<div class="card" style="margin-bottom:10px;padding:14px"><b>${esc(b[1])}</b><p class="mu" style="margin:6px 0">${esc(b[3]||"–")} · ${dueTxt(b)}</p><div class="row"><button class="btn" data-a="ns:${b[0]}">Mark Ready</button><button class="btn g" data-a="mv:${b[0]}:u">↑</button><button class="btn g" data-a="mv:${b[0]}:d">↓</button></div></div>`}).join(""):`<p class="mu">Nothing printing right now</p>`}</div>`}
 function deliverViewMobile(){const act=S.bills.filter(b=>["deliver","ship"].includes(QD(b).dm)&&!b[6]);return`<div class="card"><h2>To Deliver / Ship</h2>${act.length?act.map(b=>{const o=QD(b);return`<div class="card" style="margin-bottom:10px;padding:14px"><b>${esc(b[1])}</b><p class="mu" style="margin:6px 0">${esc(b[3]||"–")} · ${whereTxt(b)} · ${dueTxt(b)}</p><div class="row"><button class="btn" data-a="ns:${b[0]}">${o.st=="ready"?"Mark Delivered":"Move to Ready"}</button></div></div>`}).join(""):`<p class="mu">Nothing to deliver</p>`}</div>`}
 function moreViewMobile(){return`<div class="card"><h2>More</h2><div class="row" style="flex-direction:column;gap:8px">${[["Dashboard","Dashboard"],["Bills","Bills"],["Labels","Labels"],["Requests","Requests"],["Customers","Customers"],["Colors","Colors"],["Cards","Cards"],["Accounts","Accounts"],["Quote","Quote"],["History","History"],["Settings","Settings"]].map(([t,a])=>`<button class="btn g" data-a="t_${a}" style="justify-content:flex-start">${t}</button>`).join("")}</div></div>`}
-function render(){const isMobile=()=>window.innerWidth<640;
+async function render(){const isMobile=()=>window.innerWidth<640;
   const mobileViews={Queue:queueViewMobile,Scan:scanViewMobile,Print:printViewMobile,Deliver:deliverViewMobile,More:moreViewMobile};
   const viewFn=isMobile()&&mobileViews[tab]?mobileViews[tab]:{Dashboard:dash,Bills:bills,Queue:queueView,Labels:()=>typeof labelView=="function"?labelView():"",Requests:()=>typeof reqView=="function"?reqView():"",Customers:()=>typeof custView=="function"?custView():"",Colors:()=>typeof colView=="function"?colView():"",Cards:cards,Accounts:accts,Quote:quote,History:hist,Scan:scan,Settings:settings}[tab];
-  $("#app").innerHTML=viewFn();
+  $("#app").innerHTML=await viewFn();
   $("#locs").innerHTML=locOpts();
   $("#md").innerHTML=modal?`<div class="ov" data-a="x"><div class="pn">${modal}</div></div>`:"";
   const i=$("#q");if(i)i.oninput=()=>{q=i.value;const p=i.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
@@ -315,10 +335,24 @@ function render(){const isMobile=()=>window.innerWidth<640;
   const as=$("#autoSync");if(as)as.onchange=()=>{const m=M();m.autoSync=as.checked;save();toast("Saved")};
   const syncIntervalEl=$("#syncInterval");if(syncIntervalEl)syncIntervalEl.onchange=()=>{const m=M();m.syncInterval=+syncIntervalEl.value;save();toast("Saved")};
 const isMobile=()=>window.innerWidth<640;
+const navGroups=[
+  ["Overview",[["Dashboard","M4 4h16v16H4V4zm0 2v12h16V6H4z"]]],
+  ["Orders",[["Bills","M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"],["Queue","M3 3h18v18H3zM9 9h6v6H9z"],["Labels","M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM9 11h6v2H9zM9 15h6v2H9z"],["Requests","M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM12 11v7M12 11l-4 4M12 11l4 4"],["Customers","M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"]]],
+  ["Settings",[["Colors","M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"],["Cards","M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM12 16V4M12 16l-7-4M12 16l7-4"],["Accounts","M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 1 8 0 4 4 0 0 1-8 0zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"],["Settings","M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.15a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 1 1.72V22a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.72v-.5a2 2 0 0 1 1-1.74l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-1-1.72V6.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15-.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.15a2 2 0 0 1-1-1.73V2z"]]],
+  ["Tools",[["Quote","M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM9 11h6v2H9zM9 15h6v2H9z"],["History","M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 0 1-7.43-11.29l1.41-1.41A6 6 0 1 1 18.59 11l-1.41 1.41A8 8 0 0 1 12 20zM12 6v6l4 4"]],["Scan","M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M5 21H3a2 2 0 0 1-2-2v-2"]]
+];
+const navIcons={
+  Overview:"M4 4h16v16H4V4zm0 2v12h16V6H4z",
+  Orders:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z",
+  Settings:"M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.15a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 1 1.72V22a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.72V6.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15-.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.15a2 2 0 0 1-1-1.73V6.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15-.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.15a2 2 0 0 1-1-1.73V2z",
+  Tools:"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+};
+$("#sidebarNav").innerHTML=navGroups.map(([group,tabs])=>`<div class="sidebar-group"><summary><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="${navIcons[group]}"></path></svg><span>${group}</span></summary><ul>${tabs.map(([t,iconPath])=>`<li><button class="${t==tab?"on":""}" data-a="t_${t}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="${iconPath}"></path></svg>${t}${t=="Queue"&&S.bills.some(isAct)?` <span class="tag">${S.bills.filter(isAct).length}</span>`:""}</button></li>`).join("")}</ul></div>`).join("");
 if(isMobile()){const btn=$(`#bottomNav [data-a="t_${tab}"]`);if(btn){document.querySelectorAll("#bottomNav [data-a]").forEach(b=>b.classList.remove("on"));btn.classList.add("on")}};
-$("#nav").innerHTML=TABS.map(t=>`<button class="${t==tab?"on":""}" data-a="t_${t}">${t}${t=="Queue"&&S.bills.some(isAct)?` <span class="tag">${S.bills.filter(isAct).length}</span>`:""}</button>`).join("");
+$("#nav").innerHTML="";
 $("#locs").innerHTML=locOpts();
 $("#md").innerHTML=modal?`<div class="ov" data-a="x"><div class="pn">${modal}</div></div>`:"";
+$("#sidebarToggle").style.display=isMobile()?"flex":"none";
 let drawerScrollY=0;
 function openDrawer(html,footerHtml=""){drawerScrollY=window.scrollY;$("#drawerBody").innerHTML=html;$("#drawerFooter").innerHTML=footerHtml;$("#drawerOverlay").classList.add("visible");$("#billDrawer").classList.add("open");document.body.style.overflow="hidden"};
 function closeDrawer(){$("#drawerOverlay").classList.remove("visible");$("#billDrawer").classList.remove("open");document.body.style.overflow="";window.scrollTo(0,drawerScrollY)};
@@ -334,9 +368,11 @@ function billDrawerContent(id){const b=S.bills.find(x=>x[0]==id);if(!b)return"";
   return header+breakdown+meta+status+reqNote+tipCard+qCard+actions;
 }
 document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!el)return;if(el.classList.contains("ov")&&e.target!=el)return;const a=el.dataset.a,[k,x,y]=a.split(":");
-  if(a.startsWith("t_")){stopCam();tab=a.slice(2);q="";fl="all";location.hash=tab;modal="";return render()}
+  if(a.startsWith("t_")){stopCam();tab=a.slice(2);q="";fl="all";location.hash=tab;modal="";$("#sidebar").classList.remove("open");$("#sidebarOverlay").classList.remove("visible");return render()}
   if(a=="th"){const r=document.documentElement,cur=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");r.dataset.theme=cur=="dark"?"light":"dark";try{localStorage.setItem("p3dth",r.dataset.theme)}catch(e){}return}
   if(a=="x"){modal="";closeDrawer();return render()}
+  if(a=="sidebarOpen"){$("#sidebar").classList.add("open");$("#sidebarOverlay").classList.add("visible");return}
+  if(a=="sidebarClose"){$("#sidebar").classList.remove("open");$("#sidebarOverlay").classList.remove("visible");return}
   if(k=="b"){openDrawer(billDrawerContent(x));return}if(k=="c"){modal=cm(x);return render()}if(k=="a"){modal=am(x);return render()}
   if(k=="k")return copy(x);
   if(k=="u"){const c=S.cards.find(c=>c[0]==x);c[4]=c[4]?0:1;save();modal=cm(x);return render()}

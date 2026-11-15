@@ -363,7 +363,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-lb]
  else if(a=="all"){await doAll(u);return}
  else{const l=CUR.find(q=>q.key==x);if(!l)return;
   if(a=="svg")dl(new Blob([svg(l.sc,m)],{type:"image/svg+xml"}),l.file+".svg");else if(a=="png")dl(await png(l.sc,m,+u.dpi),l.file+".png");else if(a=="pdf")dl(new Blob([pdf([l.sc],m)],{type:"application/pdf"}),l.file+".pdf");return}
- save();await re()}catch(err){console.error(err);toast("Label action failed: "+(err&&err.message||err))}});
+ save();re()}catch(err){console.error(err);toast("Label action failed: "+(err&&err.message||err))}});
 document.addEventListener("change",async e=>{const el=e.target.closest("[data-lbi]");if(!el||tab!="Labels")return;const[k,x,y]=el.dataset.lbi.split(":"),v=el.value,u=U(),pl=plan(u.id);
  try{
  if(k=="imp"){const f=el.files&&el.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const o=JSON.parse(r.result);if(!isO(o))throw new Error("not a JSON object");S.lblcfg=o;CM=null;gen();note(true,"Imported "+f.name+".")}catch(err){S.lblcfg={};CM=null;note(false,"Import failed: "+err.message)}save();await re()};r.readAsText(f);return}
