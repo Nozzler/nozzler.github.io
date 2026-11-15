@@ -2,7 +2,7 @@
    built into a small scene (mm) and exported as SVG, PNG (any dpi), vector PDF, print sheets or ZIP. No libraries, works offline.
    Loaded by admin/index.html after cloud.js and labels.defaults.js. Uses the app globals S, CF, esc, $, toast, save, tab, render, bc, rcRows. */
 (()=>{
-const MM=72/25.4,N=v=>+(+v).toFixed(2),X=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const MM=72/25.4,N=v=>+(+v).toFixed(2),X=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 /* Helvetica / Helvetica-Bold advance widths for ASCII 32..126 (same metrics in the SVG via Arial/Helvetica) */
 const WR=[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584],
 WB=[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,556,556,778,556,556,500,389,280,389,584];
@@ -364,7 +364,7 @@ document.addEventListener("click",async e=>{const el=e.target.closest("[data-lb]
  else{const l=CUR.find(q=>q.key==x);if(!l)return;
   if(a=="svg")dl(new Blob([svg(l.sc,m)],{type:"image/svg+xml"}),l.file+".svg");else if(a=="png")dl(await png(l.sc,m,+u.dpi),l.file+".png");else if(a=="pdf")dl(new Blob([pdf([l.sc],m)],{type:"application/pdf"}),l.file+".pdf");return}
  save();await re()}catch(err){console.error(err);toast("Label action failed: "+(err&&err.message||err))}});
-document.addEventListener("change",e=>{const el=e.target.closest("[data-lbi]");if(!el||tab!="Labels")return;const[k,x,y]=el.dataset.lbi.split(":"),v=el.value,u=U(),pl=plan(u.id);
+document.addEventListener("change",async e=>{const el=e.target.closest("[data-lbi]");if(!el||tab!="Labels")return;const[k,x,y]=el.dataset.lbi.split(":"),v=el.value,u=U(),pl=plan(u.id);
  try{
  if(k=="imp"){const f=el.files&&el.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const o=JSON.parse(r.result);if(!isO(o))throw new Error("not a JSON object");S.lblcfg=o;CM=null;gen();note(true,"Imported "+f.name+".")}catch(err){S.lblcfg={};CM=null;note(false,"Import failed: "+err.message)}save();await re()};r.readAsText(f);return}
  if(k=="n"){pl.n=Math.max(1,Math.min(30,+v||1));pl.parts.forEach(p=>p.x=Math.min(p.x,pl.n));pl.pp=Math.min(pl.pp,pl.n)}

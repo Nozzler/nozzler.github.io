@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="">
 <title>3D Print Desk</title>
 <link rel="stylesheet" href="../shared/ui.css">
 <style>
@@ -89,15 +90,52 @@ svg text{fill:var(--mu);font-size:11px}
     </div>
   </div>
 </header>
+<div class="drawer-overlay" id="drawerOverlay" data-a="x"></div>
+<aside class="drawer" id="billDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="drawer-header">
+    <h2 id="drawerTitle">Order Details</h2>
+    <button class="drawer-close" data-a="x" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-footer" id="drawerFooter"></div>
+  <div class="drawer-handle"></div>
+</aside>
 <main id="app"></main>
 <div id="md"></div>
 <div id="ts"></div>
 <datalist id="locs"></datalist>
+<nav class="bottom-nav" id="bottomNav" aria-label="Mobile navigation">
+  <button data-a="t_Queue" aria-label="Queue">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"></path><path d="M9 9h6v6H9z"></path></svg>
+    <span>Queue</span>
+  </button>
+  <button data-a="t_Scan" aria-label="Scan">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M5 21H3a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="7" x2="17" y2="17"></line></svg>
+    <span>Scan</span>
+  </button>
+  <button data-a="t_Print" aria-label="Print">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+    <span>Print</span>
+  </button>
+  <button data-a="t_Deliver" aria-label="Deliver">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"></path><circle cx="7" cy="17" r="2"></circle><circle cx="17" cy="17" r="2"></circle><path d="M5 17h14"></path></svg>
+    <span>Deliver</span>
+  </button>
+  <button data-a="t_More" aria-label="More">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+    <span>More</span>
+  </button>
+</nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="../config.js"></script><script src="../shared/pricing.js"></script>
+<script>document.querySelector('meta[http-equiv="Content-Security-Policy"]').content=APP_CONFIG.CSP||""</script>
 <script>
 const SEED={"bills":[],"cards":[],"accounts":[],"tx":[],"types":[["one_free","1 Free 3D Print","voucher",100,0],["two_free","2 Free 3D Prints","voucher",100,0],["three_free","3 Free 3D Prints","voucher",100,0],["five_free","5 Free 3D Prints","voucher",100,0],["ten_free","10 Free 3D Prints","voucher",100,0],["discount_10","10% 3D Print Discount","voucher",10,0],["discount_20","20% 3D Print Discount","voucher",20,0],["friendship_discount","Friendship Discount (25% Forever)","voucher",25,1],["discount_30","30% 3D Print Discount","voucher",30,0],["discount_40","40% 3D Print Discount","voucher",40,0],["discount_50","50% 3D Print Discount","voucher",50,0],["discount_60","60% 3D Print Discount","voucher",60,0],["discount_70","70% 3D Print Discount","voucher",70,0],["discount_80","80% 3D Print Discount","voucher",80,0],["discount_90","90% 3D Print Discount","voucher",90,0],["account_card","Account Card","account",0,0]]};
-const E=n=>"€"+(+n).toFixed(2),$=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const E=n=>"€"+(+n).toFixed(2),$=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const clone=o=>JSON.parse(JSON.stringify(o)),today=()=>new Date().toISOString().slice(0,10);
 let S;try{S=JSON.parse(localStorage.getItem("p3d2")||"null")}catch(e){}S=S||clone(SEED);
 const save=()=>{try{localStorage.setItem("p3d2",JSON.stringify(S))}catch(e){}window.onSaved&&window.onSaved()};
@@ -238,8 +276,34 @@ function bm(id){const b=S.bills.find(x=>x[0]==id),c=b[8]||{},mx=Math.max(...Obje
 function am(id){const a=find(id);return`<h2>${esc(a[0])}</h2><p class="mu">Since ${a[3]}</p><div class="grid"><div class="card kpi"><small>Balance</small><b>${E(a[2])}</b></div><div class="card kpi"><small>Points</small><b>${a[1]}</b></div></div>
   <div class="row"><input id="tu" type="number" min="0" placeholder="Top up €"><button class="btn" data-a="t:${a[0]}">Top up</button></div>${tbl(["Bill","Due",""],S.bills.filter(b=>b[3].toUpperCase()==a[0].toUpperCase()).map(b=>({a:"b:"+b[0],c:[esc(b[1]),E(b[5]),b[6]?"✓":"open"]})),[1])}<h2 style="margin-top:14px">Buy points (€5 = 25 pts, from balance)</h2><div class="row"><input id="bp" type="number" min="5" step="5" placeholder="€"><button class="btn" data-a="bp:${a[0]}">Buy</button></div><div class="row"><button class="btn g" data-a="st:${a[0]}">Copy statement</button><button class="btn g" data-a="ap:${a[0]}">Mark all open paid</button></div><p><button class="btn g" data-a="da:${a[0]}">Delete account</button> <button class="btn g" data-a="x">Close</button></p>`}
 function cm(s){const c=S.cards.find(x=>x[0]==s);return`${card(c)}<div class="row" style="margin-top:12px"><button class="btn g" data-a="k:${s}">Copy serial</button>${T[c[1]]&&T[c[1]][2]=="voucher"&&!T[c[1]][4]?`<button class="btn g" data-a="u:${s}">${c[4]?"Restore":"Mark used"}</button>`:""}<button class="btn g" data-a="e3:${s}">Export 3MF</button><button class="btn g" data-a="dc:${s}">Delete</button><button class="btn g" data-a="x">Close</button></div>`}
-function render(){$("#nav").innerHTML=TABS.map(t=>`<button class="${t==tab?"on":""}" data-a="t_${t}">${t}${t=="Queue"&&S.bills.some(isAct)?` <span class="tag">${S.bills.filter(isAct).length}</span>`:""}</button>`).join("");
-  $("#app").innerHTML={Dashboard:dash,Bills:bills,Queue:queueView,Labels:()=>typeof labelView=="function"?labelView():"",Requests:()=>typeof reqView=="function"?reqView():"",Customers:()=>typeof custView=="function"?custView():"",Colors:()=>typeof colView=="function"?colView():"",Cards:cards,Accounts:accts,Quote:quote,History:hist,Scan:scan,Settings:settings}[tab]();
+/* Queue helpers (moved before render for isAct) */
+const PRI={urgent:["Urgent",0],high:["High",1],normal:["Normal",2],low:["Low",3]},STA={queued:"Queued",printing:"Printing",ready:"Ready",delivered:"Delivered"},
+DLM={none:"No delivery needed",pickup:"Customer pickup",deliver:"I deliver",ship:"Ship"},SH={none:"–",pickup:"Pickup",deliver:"Deliver",ship:"Ship"},
+NXT={queued:["printing","Start"],printing:["ready","Finish"],ready:["delivered","Hand over"]},QF={st:"active",pr:"",dm:"",so:"priority"};
+const QD=b=>({st:b[6]?"delivered":"",pr:"normal",due:"",tm:"",dm:"pickup",loc:"",note:"",o:0,dd:"",...b[16]}),QE=b=>b[16]=QD(b),isAct=b=>!!NXT[QD(b).st],
+nextOrd=()=>Math.max(0,...S.bills.map(b=>QD(b).o||0))+1,qEnter=b=>{const o=QE(b);if(!o.st){o.st="queued";o.o=nextOrd()}},
+locOpts=()=>[...new Set(S.bills.map(b=>QD(b).loc.trim()).filter(Boolean))].map(l=>`<option value="${esc(l)}">`).join(""),
+prTag=p=>`<span class="tag pr-${p}">${(PRI[p]||PRI.normal)[0]}</span>`,
+qTag=b=>{const o=QD(b);return o.st?`<span class="tag st-${o.st}">${STA[o.st]}</span>`:"–"},
+dueKey=o=>(o.due||"9999")+" "+(o.tm||"23:59");
+function qSort(L){const m=QF.so;return L.slice().sort((a,b)=>{const x=QD(a),y=QD(b),pin=m!="manual"?(x.st=="printing"?0:1)-(y.st=="printing"?0:1):0;
+  const pr=PRI[x.pr][1]-PRI[y.pr][1],du=dueKey(x).localeCompare(dueKey(y)),mn=(x.o||0)-(y.o||0);
+  return pin||(m=="due"?du||pr:m=="manual"?mn:pr||du)||a[2].localeCompare(b[2])})}
+function qEta(){const L=qSort(S.bills.filter(isAct)),pd=+CF().pd||16,M={};let cum=0;
+  L.forEach(b=>{const o=QD(b);if(o.st!="ready")cum+=+(b[11]||{}).t||0;const eta=new Date(Date.now()+cum/(60*pd)*864e5).toISOString().slice(0,10);M[b[0]]={eta,risk:!!(o.due&&o.st!="ready"&&eta>o.due)}});return M}
+function dueTxt(b){const o=QD(b);if(!o.due)return'<span class="mu">–</span>';const d=Math.round((new Date(o.due)-new Date(today()))/864e5),t=o.tm?" "+esc(o.tm):"";
+  if(o.st=="delivered")return o.due+t;return d<0?`<span class="er">${o.due} · ${-d}d late</span>`:d==0?`<span class="wn">Today${t}</span>`:d==1?`<span class="wn">Tomorrow${t}</span>`:`${o.due}${t} <span class="mu">· ${d}d</span>`}
+function whereTxt(b){const o=QD(b);return o.dm=="none"?'<span class="mu">–</span>':SH[o.dm]+(o.loc?": "+esc(o.loc):"")}
+// Mobile-focused views
+function queueViewMobile(){const act=S.bills.filter(isAct);return`<div class="card"><h2>Print Queue</h2>${act.length?act.map(b=>{const o=QD(b),eta=qEta()[b[0]];return`<div class="card" style="margin-bottom:10px;padding:14px"><div class="row" style="justify-content:space-between"><b>${esc(b[1])}</b><span class="tag st-${o.st}">${STA[o.st]}</span></div><p class="mu" style="margin:6px 0">${esc(b[3]||"–")} · ${dueTxt(b)}${o.dm!="none"?` · ${SH[o.dm]}${o.loc?": "+esc(o.loc):""}`:""}${eta&&eta.risk?`<span class="wn">⚠ ETA ${eta.eta}</span>`:""}</p><div class="row">${NXT[o.st]?`<button class="btn" data-a="ns:${b[0]}">${NXT[o.st][1]}</button>`:""}${isAct(b)?`<button class="btn g" data-a="mv:${b[0]}:u">↑</button><button class="btn g" data-a="mv:${b[0]}:d">↓</button>`:""}</div></div>`}).join(""):`<p class="mu">Queue is empty</p>`}</div>`}
+function scanViewMobile(){return`<div class="card"><h2>Scan to Find Order</h2><p class="mu" style="margin-bottom:16px">Scan a bill QR code or barcode to open it instantly.</p><div class="row" style="justify-content:center"><button class="btn" id="startScan" style="width:100%"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M5 21H3a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="7" x2="17" y2="17"></line></svg>Open Camera</button></div><div id="scanResult" style="margin-top:16px"></div></div>`}
+function printViewMobile(){const act=S.bills.filter(b=>QD(b).st=="printing");return`<div class="card"><h2>Now Printing</h2>${act.length?act.map(b=>{const o=QD(b);return`<div class="card" style="margin-bottom:10px;padding:14px"><b>${esc(b[1])}</b><p class="mu" style="margin:6px 0">${esc(b[3]||"–")} · ${dueTxt(b)}</p><div class="row"><button class="btn" data-a="ns:${b[0]}">Mark Ready</button><button class="btn g" data-a="mv:${b[0]}:u">↑</button><button class="btn g" data-a="mv:${b[0]}:d">↓</button></div></div>`}).join(""):`<p class="mu">Nothing printing right now</p>`}</div>`}
+function deliverViewMobile(){const act=S.bills.filter(b=>["deliver","ship"].includes(QD(b).dm)&&!b[6]);return`<div class="card"><h2>To Deliver / Ship</h2>${act.length?act.map(b=>{const o=QD(b);return`<div class="card" style="margin-bottom:10px;padding:14px"><b>${esc(b[1])}</b><p class="mu" style="margin:6px 0">${esc(b[3]||"–")} · ${whereTxt(b)} · ${dueTxt(b)}</p><div class="row"><button class="btn" data-a="ns:${b[0]}">${o.st=="ready"?"Mark Delivered":"Move to Ready"}</button></div></div>`}).join(""):`<p class="mu">Nothing to deliver</p>`}</div>`}
+function moreViewMobile(){return`<div class="card"><h2>More</h2><div class="row" style="flex-direction:column;gap:8px">${[["Dashboard","Dashboard"],["Bills","Bills"],["Labels","Labels"],["Requests","Requests"],["Customers","Customers"],["Colors","Colors"],["Cards","Cards"],["Accounts","Accounts"],["Quote","Quote"],["History","History"],["Settings","Settings"]].map(([t,a])=>`<button class="btn g" data-a="t_${a}" style="justify-content:flex-start">${t}</button>`).join("")}</div></div>`}
+function render(){const isMobile=()=>window.innerWidth<640;
+  const mobileViews={Queue:queueViewMobile,Scan:scanViewMobile,Print:printViewMobile,Deliver:deliverViewMobile,More:moreViewMobile};
+  const viewFn=isMobile()&&mobileViews[tab]?mobileViews[tab]:{Dashboard:dash,Bills:bills,Queue:queueView,Labels:()=>typeof labelView=="function"?labelView():"",Requests:()=>typeof reqView=="function"?reqView():"",Customers:()=>typeof custView=="function"?custView():"",Colors:()=>typeof colView=="function"?colView():"",Cards:cards,Accounts:accts,Quote:quote,History:hist,Scan:scan,Settings:settings}[tab];
+  $("#app").innerHTML=viewFn();
   $("#locs").innerHTML=locOpts();
   $("#md").innerHTML=modal?`<div class="ov" data-a="x"><div class="pn">${modal}</div></div>`:"";
   const i=$("#q");if(i)i.oninput=()=>{q=i.value;const p=i.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
@@ -247,14 +311,33 @@ function render(){$("#nav").innerHTML=TABS.map(t=>`<button class="${t==tab?"on":
   const d=$("#dz");if(d){d.onclick=()=>$("#gf").click();$("#gf").onchange=e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)loadGFiles(fs,!!(Q.plates&&Q.plates.length))};d.ondragover=e=>{e.preventDefault();d.classList.add("h")};d.ondragleave=()=>d.classList.remove("h");d.ondrop=e=>{e.preventDefault();d.classList.remove("h");if(e.dataTransfer.files&&e.dataTransfer.files.length)loadGFiles([...e.dataTransfer.files],!!(Q.plates&&Q.plates.length))}}
   const j=$("#jf");if(j)j.onchange=async e=>{$("#tx").value=await e.target.files[0].text()}}
   // Settings form handlers
-  $$(".settings-row [data-c]").forEach(el=>{el.onchange=()=>{const c=el.dataset.c;if(el.type=="checkbox")S.cfg[c]=el.checked;else if(el.type=="number")S.cfg[c]=+el.value;else S.cfg[c]=el.value;save();toast("Saved");render()}});
+  document.querySelectorAll(".settings-row [data-c]").forEach(el=>{el.onchange=()=>{const c=el.dataset.c;if(el.type=="checkbox")S.cfg[c]=el.checked;else if(el.type=="number")S.cfg[c]=+el.value;else S.cfg[c]=el.value;save();toast("Saved");render()}});
   const as=$("#autoSync");if(as)as.onchange=()=>{const m=M();m.autoSync=as.checked;save();toast("Saved")};
   const syncIntervalEl=$("#syncInterval");if(syncIntervalEl)syncIntervalEl.onchange=()=>{const m=M();m.syncInterval=+syncIntervalEl.value;save();toast("Saved")};
+const isMobile=()=>window.innerWidth<640;
+if(isMobile()){const btn=$(`#bottomNav [data-a="t_${tab}"]`);if(btn){document.querySelectorAll("#bottomNav [data-a]").forEach(b=>b.classList.remove("on"));btn.classList.add("on")}};
+$("#nav").innerHTML=TABS.map(t=>`<button class="${t==tab?"on":""}" data-a="t_${t}">${t}${t=="Queue"&&S.bills.some(isAct)?` <span class="tag">${S.bills.filter(isAct).length}</span>`:""}</button>`).join("");
+$("#locs").innerHTML=locOpts();
+$("#md").innerHTML=modal?`<div class="ov" data-a="x"><div class="pn">${modal}</div></div>`:"";
+let drawerScrollY=0;
+function openDrawer(html,footerHtml=""){drawerScrollY=window.scrollY;$("#drawerBody").innerHTML=html;$("#drawerFooter").innerHTML=footerHtml;$("#drawerOverlay").classList.add("visible");$("#billDrawer").classList.add("open");document.body.style.overflow="hidden"};
+function closeDrawer(){$("#drawerOverlay").classList.remove("visible");$("#billDrawer").classList.remove("open");document.body.style.overflow="";window.scrollTo(0,drawerScrollY)};
+function billDrawerContent(id){const b=S.bills.find(x=>x[0]==id);if(!b)return"";const c=b[8]||{},mx=Math.max(...Object.values(c).filter(v=>typeof v=="number"&&v!=c.total),.01),a=find(b[3]);
+  const header=`<h2>${esc(b[1])} <span class="mono mu">${b[0]}</span></h2><p class="mu">${b[2]} · ${esc(b[3])}</p>`;
+  const breakdown=Object.keys(BK).filter(k=>c[k]!=null).map(k=>`<div class="bl"><span>${BK[k]}</span><div class="bar" style="width:${c[k]/mx*100}%"></div><span class="n">${E(c[k])}</span></div>`).join("");
+  const meta=`<p>Base ${E(b[4])}${b[7]?` · tip ${E(b[7])}`:""}${b[9]?` · voucher ${b[9]}`:""}</p><p class="big">${E(b[5])}</p>`;
+  const status=b[6]?`<span class="ok">Paid</span>`:`<span class="wn">Open</span>`;
+  const reqNote=window.reqAcc&&reqAcc(b)?`<p class="ok">✓ The customer accepted this quote on the site. Check the price (use the sliced file if needed), then press Customer confirmed to queue it.</p>`:"";
+  const tipCard=`<div class="card" style="margin-bottom:12px"><label>Tip (now ${E(b[7]||0)})</label><div class="row" style="margin:4px 0 0"><input id="tp" type="number" min="0" step="0.5" value="${b[7]||0}" style="width:90px">${[5,10,15].map(p=>`<button class="btn g s" data-a="q:${id}:${p}">${p}%</button>`).join("")}<button class="btn g s" data-a="q:${id}:r">Round up</button><button class="btn s" data-a="q:${id}:s">Set tip</button></div></div>`;
+  const qCard=qPanel(b);
+  const actions=`<div class="row">${b[6]?`<button class="btn g" data-a="p:${id}:0">Mark open</button>`:`<select id="pm" style="width:auto"><option>cash</option><option>bank</option><option>card</option><option>other</option></select><button class="btn" data-a="p:${id}:1">Mark paid</button>${a&&a[2]>=b[5]?`<button class="btn g" data-a="p:${id}:b">Pay from balance (${E(a[2])})</button>`:""}`}${b[14]=="quote"?`<button class="btn" data-a="cf:${id}">Customer confirmed</button>`:""}<button class="btn g" data-a="dp:${id}">Duplicate</button><button class="btn g" data-a="lbl:${id}">Box labels</button><button class="btn g" data-a="d:${id}">Delete</button><button class="btn g" data-a="x">Close</button></div>`;
+  return header+breakdown+meta+status+reqNote+tipCard+qCard+actions;
+}
 document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!el)return;if(el.classList.contains("ov")&&e.target!=el)return;const a=el.dataset.a,[k,x,y]=a.split(":");
   if(a.startsWith("t_")){stopCam();tab=a.slice(2);q="";fl="all";location.hash=tab;modal="";return render()}
   if(a=="th"){const r=document.documentElement,cur=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");r.dataset.theme=cur=="dark"?"light":"dark";try{localStorage.setItem("p3dth",r.dataset.theme)}catch(e){}return}
-  if(a=="x"){modal="";return render()}
-  if(k=="b"){modal=bm(x);return render()}if(k=="c"){modal=cm(x);return render()}if(k=="a"){modal=am(x);return render()}
+  if(a=="x"){modal="";closeDrawer();return render()}
+  if(k=="b"){openDrawer(billDrawerContent(x));return}if(k=="c"){modal=cm(x);return render()}if(k=="a"){modal=am(x);return render()}
   if(k=="k")return copy(x);
   if(k=="u"){const c=S.cards.find(c=>c[0]==x);c[4]=c[4]?0:1;save();modal=cm(x);return render()}
   if(k=="p"){const b=S.bills.find(b=>b[0]==x),ac=find(b[3]);if(y!="0")applyDed(b);if(y=="b"){ac[2]=Math.round((ac[2]-b[5])*100)/100;TX(ac[0],"balance_paid",0,-b[5],"Bill "+b[0])}if(y=="0"){if(b[10]&&ac)ac[1]-=b[10];b[10]=0}else if(!b[6]&&ac&&!b[10]){b[10]=Math.floor(b[4]/5)*25;ac[1]+=b[10];TX(ac[0],"points_reward",b[10],0,"Bill "+b[0]+" paid")}b[6]=y=="0"?0:1;if(y!="0"){b[12]=y=="b"?"balance":(($("#pm")||{}).value||"cash");b[13]=today();TX(b[3],"bill_paid",0,0,"Bill "+b[0]+" "+E(b[5])+" via "+b[12])}save();toast(y!="0"&&b[10]?"Paid · +"+b[10]+" points":"Updated");modal=bm(x);return render()}
@@ -296,6 +379,10 @@ document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!
   if(a=="cq"){const L=qSort(S.bills.filter(isAct)),eta=qEta();return copy(L.length?L.map((b,i)=>{const o=QD(b);return `${i+1}. [${PRI[o.pr][0].toUpperCase()}] ${b[1]} (${b[0]}) · ${b[3]||"-"} · ${STA[o.st]} · due ${o.due?o.due+(o.tm?" "+o.tm:""):"-"}${o.dm!="none"?" · "+SH[o.dm]+(o.loc?" → "+o.loc:""):""}${eta[b[0]]&&eta[b[0]].risk?" · AT RISK (ETA "+eta[b[0]].eta+")":""}`}).join("\n"):"Queue is empty")}
   if(a=="cdl"){const g=delGroups();return copy(g.length?g.map(x=>`${x.due||"no date"} · ${SH[x.dm]} · ${x.loc||"(no location)"}: ${x.L.map(b=>b[1]+" ("+STA[QD(b).st]+")").join(", ")}`).join("\n"):"Nothing to deliver")}
   if(a=="rs"){S=clone(SEED);save();toast("Reset");render()}});
+// Keyboard: ESC closes drawer/modal, / focuses search, N new bill
+document.addEventListener("keydown",e=>{if(e.key=="Escape"){if($("#billDrawer").classList.contains("open")){closeDrawer()}else if(modal){modal="";render()}}if(e.key=="/"&&e.target.tagName!="INPUT"&&e.target.tagName!="TEXTAREA"){e.preventDefault();const s=$("#q");if(s)s.focus()}if(e.key=="n"&&e.target.tagName!="INPUT"&&e.target.tagName!="TEXTAREA"&&tab=="Bills"){const id=Array.from(crypto.getRandomValues(new Uint8Array(8)),r=>AL[r%32]).join("");S.bills.push([id,"New bill",today(),"",0,0,0,0,{},"",0,{}]);save();render();openDrawer(billDrawerContent(id))}});
+// Touch swipe to close drawer on mobile
+let touchStartY=0;document.addEventListener("touchstart",e=>{if($("#billDrawer").classList.contains("open")&&window.innerWidth<640){touchStartY=e.touches[0].clientY}},{passive:true});document.addEventListener("touchmove",e=>{const drawer=$("#billDrawer");if(drawer.classList.contains("open")&&window.innerWidth<640){const dy=e.touches[0].clientY-touchStartY;if(dy>0)drawer.style.transform=`translateY(${dy}px)`}},{passive:true});document.addEventListener("touchend",e=>{const drawer=$("#billDrawer");if(drawer.classList.contains("open")&&window.innerWidth<640){const dy=e.changedTouches[0].clientY-touchStartY;drawer.style.transform="";if(dy>100)closeDrawer()}},{passive:true});
 let so="new",armed="";
 const SO={new:(a,b)=>b[2].localeCompare(a[2]),old:(a,b)=>a[2].localeCompare(b[2]),high:(a,b)=>b[5]-a[5],low:(a,b)=>a[5]-b[5]};
 const rnd=v=>Math.round(v*100)/100,dec=b=>new TextDecoder().decode(b);
@@ -564,24 +651,7 @@ document.addEventListener("change",e=>{const t=e.target,d=t.dataset,v=t.type=="c
   else if(d.c){CF();S.cfg[d.c]=v;save();toast("Saved");if(modal&&modal.includes('class="pw"'))modal=bm(lastBill);render()}
   else if(d.h){hf[d.h]=v;render()}
   else if(t.id=="sp"&&t.files[0])loadImg(t.files[0])});
-/* print queue */
-const PRI={urgent:["Urgent",0],high:["High",1],normal:["Normal",2],low:["Low",3]},STA={queued:"Queued",printing:"Printing",ready:"Ready",delivered:"Delivered"},
-DLM={none:"No delivery needed",pickup:"Customer pickup",deliver:"I deliver",ship:"Ship"},SH={none:"–",pickup:"Pickup",deliver:"Deliver",ship:"Ship"},
-NXT={queued:["printing","Start"],printing:["ready","Finish"],ready:["delivered","Hand over"]},QF={st:"active",pr:"",dm:"",so:"priority"};
-const QD=b=>({st:b[6]?"delivered":"",pr:"normal",due:"",tm:"",dm:"pickup",loc:"",note:"",o:0,dd:"",...b[16]}),QE=b=>b[16]=QD(b),isAct=b=>!!NXT[QD(b).st],
-nextOrd=()=>Math.max(0,...S.bills.map(b=>QD(b).o||0))+1,qEnter=b=>{const o=QE(b);if(!o.st){o.st="queued";o.o=nextOrd()}},
-locOpts=()=>[...new Set(S.bills.map(b=>QD(b).loc.trim()).filter(Boolean))].map(l=>`<option value="${esc(l)}">`).join(""),
-prTag=p=>`<span class="tag pr-${p}">${(PRI[p]||PRI.normal)[0]}</span>`,
-qTag=b=>{const o=QD(b);return o.st?`<span class="tag st-${o.st}">${STA[o.st]}</span>`:"–"},
-dueKey=o=>(o.due||"9999")+" "+(o.tm||"23:59");
-function qSort(L){const m=QF.so;return L.slice().sort((a,b)=>{const x=QD(a),y=QD(b),pin=m!="manual"?(x.st=="printing"?0:1)-(y.st=="printing"?0:1):0;
-  const pr=PRI[x.pr][1]-PRI[y.pr][1],du=dueKey(x).localeCompare(dueKey(y)),mn=(x.o||0)-(y.o||0);
-  return pin||(m=="due"?du||pr:m=="manual"?mn:pr||du)||a[2].localeCompare(b[2])})}
-function qEta(){const L=qSort(S.bills.filter(isAct)),pd=+CF().pd||16,M={};let cum=0;
-  L.forEach(b=>{const o=QD(b);if(o.st!="ready")cum+=+(b[11]||{}).t||0;const eta=new Date(Date.now()+cum/(60*pd)*864e5).toISOString().slice(0,10);M[b[0]]={eta,risk:!!(o.due&&o.st!="ready"&&eta>o.due)}});return M}
-function dueTxt(b){const o=QD(b);if(!o.due)return'<span class="mu">–</span>';const d=Math.round((new Date(o.due)-new Date(today()))/864e5),t=o.tm?" "+esc(o.tm):"";
-  if(o.st=="delivered")return o.due+t;return d<0?`<span class="er">${o.due} · ${-d}d late</span>`:d==0?`<span class="wn">Today${t}</span>`:d==1?`<span class="wn">Tomorrow${t}</span>`:`${o.due}${t} <span class="mu">· ${d}d</span>`}
-function whereTxt(b){const o=QD(b);return o.dm=="none"?'<span class="mu">–</span>':SH[o.dm]+(o.loc?": "+esc(o.loc):"")}
+/* print queue - uses PRI, STA, DLM, SH, NXT, QF, QD, QE, isAct, nextOrd, qEnter, locOpts, prTag, qTag, dueKey, qSort, qEta, dueTxt, whereTxt defined above */
 function QRows(R,b){const o=QD(b),nl=CF().lang=="nl";if(o.due)R.push(["kv",nl?"Gewenst op":"Needed by",o.due+(o.tm?" "+o.tm:"")]);
   if(o.dm!="none"&&o.loc)R.push(["kv",o.dm=="pickup"?(nl?"Ophalen":"Pickup"):o.dm=="ship"?(nl?"Verzenden":"Ship"):(nl?"Bezorgen":"Deliver"),o.loc])}
 function qPanel(b){const o=QD(b),id=b[0],at=k=>`data-qf="${k}" data-qi="${id}"`,

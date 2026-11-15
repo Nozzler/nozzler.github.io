@@ -12,7 +12,7 @@ document.body.append(gate);
 const err=t=>{const m=gate.querySelector("#gm");if(m)m.textContent=t};
 async function ok(){const{data:{session}}=await sb.auth.getSession();if(!session)return false;const{data:p}=await sb.from("profiles").select("role").eq("id",session.user.id).maybeSingle();
  if(!p||p.role!="admin"){await sb.auth.signOut();err("This account is not an admin.");return false}return true}
-async function enter(){gate.remove();cloud=true;const h=document.querySelector("header");h.insertBefore(chip,h.querySelector("[data-a=th]"));h.append(so);
+async function enter(){gate.remove();cloud=true;const ha=document.querySelector(".header-actions");const ref=ha?.querySelector("[data-a=th]");if(ref)ha.insertBefore(chip,ref);else ha?.append(chip);ha?.append(so);
  await pull();window.onSaved=()=>{setM({dirty:true});setSt("dirty");clearTimeout(timer);timer=setTimeout(push,1500)};window.__start();loadReq();pubColors();setInterval(loadReq,15000)}
 const gl=gate.querySelector("#gl");if(gl)gl.onclick=()=>{gate.remove();window.__start()};
 if(on){gate.querySelector("#gi").onclick=async()=>{err("");const r=await sb.auth.signInWithPassword({email:gate.querySelector("#ge").value.trim(),password:gate.querySelector("#gp").value});
