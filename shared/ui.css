@@ -5,19 +5,20 @@
 
 /* ───────── Tokens ───────── */
 :root{
-  --bg:#f5f4f1;
-  --sf:#ffffff;
-  --tx:#1d1b17;
+  --bg:#eeebe4;
+  --sf:#faf9f6;
+  --tx:#16140f;
   --mu:#6b675f;
-  --bd:rgba(29,27,23,.09);
-  --fill:rgba(29,27,23,.055);
-  --fill2:rgba(29,27,23,.095);
+  --bd:rgba(22,20,15,.15);
+  --fill:rgba(22,20,15,.055);
+  --fill2:rgba(22,20,15,.1);
   --ac:#c2410c;
   --ac2:#ea580c;
   --on-ac:#fff;
   --ok:#157a3a;
   --wn:#a8590a;
   --er:#c0261f;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
   --r:22px;
   --r-sm:12px;
   --sh:0 1px 2px rgba(29,27,23,.05);
@@ -77,7 +78,7 @@ small,.small{font-size:.8125rem;letter-spacing:.003em}
 header{
   position:sticky;top:0;z-index:40;
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  padding:10px max(20px,calc((100vw - 1120px)/2));
+  padding:10px clamp(20px,4.5vw,88px);
   background:var(--glass);
   -webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px);
   box-shadow:0 .5px 0 transparent;
@@ -160,7 +161,7 @@ body.shop header>nav button.on{color:var(--tx)}
 .theme-toggle svg{width:19px;height:19px}
 
 /* ───────── Buttons ───────── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--ac);color:var(--on-ac);border:0;border-radius:99px;padding:11px 22px;min-height:46px;font:inherit;font-weight:600;letter-spacing:-.011em;cursor:pointer;
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--ac);color:var(--on-ac);border:0;border-radius:10px;padding:11px 22px;min-height:46px;font:inherit;font-weight:600;letter-spacing:-.011em;cursor:pointer;
   transition:transform var(--t-snap) var(--snap),background .2s,opacity .2s,filter .2s}
 .btn:hover{text-decoration:none}
 @media(hover:hover){.btn:hover{filter:brightness(1.08)}}
@@ -174,7 +175,7 @@ body.shop header>nav button.on{color:var(--tx)}
 /* ───────── Layout ───────── */
 main{max-width:1120px;margin:0 auto;padding:24px 20px calc(48px + env(safe-area-inset-bottom,0px))}
 .card{background:var(--sf);border-radius:var(--r);padding:24px;margin-bottom:16px;box-shadow:0 0 0 .5px var(--bd),var(--sh)}
-.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:14px}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:14px;margin-bottom:14px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:4px 0}
 .big{font-family:var(--font-display);font-size:clamp(2.5rem,7vw,3.5rem);font-weight:700;letter-spacing:-.04em;line-height:1;margin:2px 0 10px;font-variant-numeric:tabular-nums}
@@ -388,3 +389,52 @@ header{top:env(safe-area-inset-top,0px)}body.shop{padding-top:env(safe-area-inse
   .card,.obj{box-shadow:0 0 0 1px var(--bd)}
   header,.bottom-nav{background:var(--sf)}
 }
+
+
+/* ───────── Shop: spec-sheet layout. Full width, ruled sections instead of boxed cards, mono for technical labels ───────── */
+body.shop main{max-width:none;padding-inline:clamp(20px,4.5vw,88px)}
+body.shop header{box-shadow:0 1px 0 var(--bd)}
+body.shop header>nav{background:none;padding:0;border-radius:0;gap:6px}
+body.shop header>nav button{padding:14px 14px;border-radius:0;font-size:.9375rem}
+body.shop header>nav button.on{font-weight:600}
+body.shop .nav-ind{top:auto;bottom:-11px;height:2px;border-radius:0;background:var(--ac);box-shadow:none}
+body.shop .brand img{border-radius:7px}
+
+body.shop .hero{grid-template-columns:minmax(0,1.6fr) minmax(0,.55fr);gap:clamp(24px,5vw,96px);padding:clamp(28px,6vw,96px) 0 clamp(20px,3vw,48px)}
+body.shop .hero h2{font-size:clamp(3rem,8.2vw,8.25rem);line-height:.95;letter-spacing:-.052em;font-weight:700;margin-bottom:clamp(20px,2.4vw,36px)}
+body.shop .hero p{font-size:clamp(1.0625rem,1.5vw,1.5rem);max-width:30em}
+body.shop .hero-art{width:min(100%,clamp(220px,24vw,420px));justify-self:end}
+body.shop .steps{border-top:1.5px solid var(--tx);margin:8px 0 28px;gap:0 clamp(20px,3vw,56px)}
+body.shop .steps b{font-size:1.0625rem}
+
+body.shop .card,body.shop .obj{background:none;box-shadow:none;border-radius:0;border-top:1.5px solid var(--tx);padding:16px 0 30px;margin-bottom:6px}
+body.shop .card h2{font-size:1.5rem;letter-spacing:-.03em;margin-bottom:18px}
+body.shop .card.auth{background:var(--sf);border:1px solid var(--bd);border-top-width:1px;border-radius:14px;padding:32px;margin-bottom:0}
+body.shop .card#est{--tx:#f3f0ea;--mu:#aaa59a;--ok:#5ddc8a;--wn:#f5b942;--er:#ff8a82;--bd:rgba(243,240,234,.18);background:#1b1916;color:#f3f0ea;border:0;border-radius:12px;padding:24px 24px 26px;margin-bottom:12px}
+body.shop .card#est h2{font-family:var(--mono);font-size:.6875rem;text-transform:uppercase;letter-spacing:.08em;font-weight:500;color:var(--mu);margin-bottom:14px}
+body.shop .card#est .big{font-size:clamp(2.25rem,3.4vw,3.5rem)}
+body.shop .shopgrid{grid-template-columns:minmax(0,1fr) clamp(340px,27vw,460px);gap:clamp(24px,4vw,72px)}
+body.shop .shopgrid .side{top:84px}
+body.shop .side .card:not(#est){padding-top:16px}
+
+body.shop label:not(.tg){font-family:var(--mono);font-size:.6875rem;font-weight:500;text-transform:uppercase;letter-spacing:.07em}
+body.shop input,body.shop select,body.shop textarea{border-radius:8px;background-color:var(--fill);box-shadow:inset 0 -1.5px 0 var(--bd)}
+body.shop input:focus,body.shop select:focus,body.shop textarea:focus{box-shadow:inset 0 -2px 0 var(--ac),var(--focus)}
+body.shop .tg input{box-shadow:none}
+body.shop .tg input:focus{box-shadow:var(--focus)}
+body.shop .drop{border-radius:10px;border-color:var(--tx);border-width:1.5px;background:none;padding:clamp(28px,3.4vw,52px) 20px}
+body.shop .drop:hover,body.shop .drop.h{background:color-mix(in srgb,var(--ac) 7%,transparent)}
+body.shop .btn.s{border-radius:8px}
+body.shop .stepper{border-radius:10px}
+body.shop .stepper .btn{background:var(--sf)}
+body.shop .msg{border-radius:8px;border-left:3px solid var(--ac);background:color-mix(in srgb,var(--ac) 8%,transparent)}
+body.shop .msg.er{border-left-color:var(--er)}
+body.shop .tag{font-family:var(--mono);font-size:.6875rem;text-transform:uppercase;letter-spacing:.05em;border-radius:6px;font-weight:500}
+body.shop .user-menu-dropdown,body.shop .notifications-dropdown{border-radius:14px}
+body.shop .obj>.row:first-child b,body.shop .order-top b{font-size:1.25rem;letter-spacing:-.025em}
+body.shop .empty{text-align:left;padding:32px 0;border-top:1.5px solid var(--tx)}
+body.shop .empty svg{display:none}
+@media(max-width:900px){body.shop .hero{grid-template-columns:1fr}body.shop .hero-art{justify-self:start}}
+@media(max-width:639px){body.shop .hero-art{width:110px}body.shop .hero h2{font-size:clamp(2.75rem,13vw,4rem)}}
+
+@media(max-width:900px){body.shop .shopgrid{grid-template-columns:minmax(0,1fr)}body.shop .shopgrid .side{position:static}}
