@@ -83,3 +83,6 @@ Export: one PDF (copies repeated), **print sheets** (labels packed at real size 
 
 **Look & text**: brand name, wordmark, tagline, signature, footer, return address, contact and web lines, the colour palette and all texts (EN and NL). The web line defaults to Nozzler.github.io.
 **JSON**: everything you change is saved as sparse overrides (`S.lblcfg`) on top of the defaults file, so updating `labels.defaults.js` never wipes your changes. Download or import the overrides, download the full config, or reset.
+
+## Design system (`shared/ui.css`)
+Built from Apple's fluid-interface principles. Colours, radii, springs (`--smooth`, `--snap`, `--bounce` as CSS `linear()` curves) and type are tokens at the top of `shared/ui.css`; change them there and both shop and admin follow. Press feedback fires on pointer-down, popovers grow from the button that opened them, the nav indicator and switches are spring-driven, and `prefers-reduced-motion`, `prefers-reduced-transparency` and `prefers-contrast` each get their own gentler path. The theme toggle is remembered (`p3dth`).
