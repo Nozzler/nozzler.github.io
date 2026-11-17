@@ -4,20 +4,16 @@
 <meta http-equiv="Content-Security-Policy" content="">
 <title>3D Print Desk</title>
 <link rel="stylesheet" href="../shared/ui.css">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" defer></script>
 <script>try{var t=localStorage.getItem("p3dth");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 /* Admin-specific overrides */
 main{max-width:1060px;margin:0 auto;padding:20px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:14px;margin-bottom:16px}
-.card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:16px}
-.kpi b{display:block;font-size:26px;letter-spacing:-.5px}.kpi small{color:var(--mu)}
-h2{font-size:15px;margin:0 0 12px}
-.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mu);font-weight:500}
+.tw{overflow-x:auto}
 tr[data-a]{cursor:pointer}tr[data-a]:hover td{background:color-mix(in srgb,var(--ac) 7%,transparent)}
 .n{text-align:right;font-variant-numeric:tabular-nums}
-.tag{padding:2px 9px;border-radius:99px;font-size:12px;background:color-mix(in srgb,var(--mu) 18%,transparent)}
 .er{color:var(--er)}.pr-urgent{background:color-mix(in srgb,var(--er) 18%,transparent);color:var(--er);font-weight:600}.pr-high{background:color-mix(in srgb,var(--wn) 22%,transparent);color:var(--wn)}.pr-low{opacity:.7}.st-printing{background:color-mix(in srgb,var(--ac) 20%,transparent);color:var(--ac)}.st-ready,.st-delivered{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}.acts{display:flex;gap:4px;align-items:center}
 .ok{color:var(--ok)}.wn{color:var(--wn)}.mu{color:var(--mu)}
 .bl{display:grid;grid-template-columns:110px 1fr 60px;gap:8px;align-items:center;margin:7px 0;font-size:14px}
@@ -355,7 +351,8 @@ $("#locs").innerHTML=locOpts();
 $("#md").innerHTML=modal?`<div class="ov" data-a="x"><div class="pn">${modal}</div></div>`:"";
 $("#sidebarToggle").style.display=isMobile()?"flex":"none";
 let drawerScrollY=0;
-function openDrawer(html,footerHtml=""){drawerScrollY=window.scrollY;$("#drawerBody").innerHTML=html;$("#drawerFooter").innerHTML=footerHtml;$("#drawerOverlay").classList.add("visible");$("#billDrawer").classList.add("open");document.body.style.overflow="hidden"};
+function openDrawer(html,footerHtml="",title="Order details"){const dt=$("#drawerTitle");if(dt)dt.textContent=title;if(!$("#billDrawer").classList.contains("open"))drawerScrollY=window.scrollY;$("#drawerBody").innerHTML=html;$("#drawerFooter").innerHTML=footerHtml;$("#drawerOverlay").classList.add("visible");$("#billDrawer").classList.add("open");document.body.style.overflow="hidden"};
+function refreshAcct(id){const b=$("#drawerBody");if(b&&find(id)){const y=b.scrollTop;b.innerHTML=am(id);b.scrollTop=y}}
 function closeDrawer(){$("#drawerOverlay").classList.remove("visible");$("#billDrawer").classList.remove("open");document.body.style.overflow="";window.scrollTo(0,drawerScrollY)};
 function billDrawerContent(id){const b=S.bills.find(x=>x[0]==id);if(!b)return"";const c=b[8]||{},mx=Math.max(...Object.values(c).filter(v=>typeof v=="number"&&v!=c.total),.01),a=find(b[3]);
   const header=`<h2>${esc(b[1])} <span class="mono mu">${b[0]}</span></h2><p class="mu">${b[2]} · ${esc(b[3])}</p>`;
@@ -374,11 +371,11 @@ document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!
   if(a=="x"){modal="";closeDrawer();return render()}
   if(a=="sidebarOpen"){$("#sidebar").classList.add("open");$("#sidebarOverlay").classList.add("visible");return}
   if(a=="sidebarClose"){$("#sidebar").classList.remove("open");$("#sidebarOverlay").classList.remove("visible");return}
-  if(k=="b"){openDrawer(billDrawerContent(x));return}if(k=="c"){modal=cm(x);return render()}if(k=="a"){modal=am(x);return render()}
+  if(k=="b"){openDrawer(billDrawerContent(x),"","Order details");return}if(k=="c"){modal=cm(x);return render()}if(k=="a"){openDrawer(am(x),"","Account");return}
   if(k=="k")return copy(x);
   if(k=="u"){const c=S.cards.find(c=>c[0]==x);c[4]=c[4]?0:1;save();modal=cm(x);return render()}
   if(k=="p"){const b=S.bills.find(b=>b[0]==x),ac=find(b[3]);if(y!="0")applyDed(b);if(y=="b"){ac[2]=Math.round((ac[2]-b[5])*100)/100;TX(ac[0],"balance_paid",0,-b[5],"Bill "+b[0])}if(y=="0"){if(b[10]&&ac)ac[1]-=b[10];b[10]=0}else if(!b[6]&&ac&&!b[10]){b[10]=Math.floor(b[4]/5)*25;ac[1]+=b[10];TX(ac[0],"points_reward",b[10],0,"Bill "+b[0]+" paid")}b[6]=y=="0"?0:1;if(y!="0"){b[12]=y=="b"?"balance":(($("#pm")||{}).value||"cash");b[13]=today();TX(b[3],"bill_paid",0,0,"Bill "+b[0]+" "+E(b[5])+" via "+b[12])}save();toast(y!="0"&&b[10]?"Paid · +"+b[10]+" points":"Updated");modal=bm(x);return render()}
-  if(k=="t"){const v=+$("#tu").value,ac=find(x);if(v>0){ac[2]=Math.round((ac[2]+v)*100)/100;TX(ac[0],"topup",0,v,"Top up "+E(v));save();toast("Topped up");modal=am(x);render()}return}
+  if(k=="t"){const v=+$("#tu").value,ac=find(x);if(v>0){ac[2]=Math.round((ac[2]+v)*100)/100;TX(ac[0],"topup",0,v,"Top up "+E(v));save();toast("Topped up");refreshAcct(x);render()}return}
   if(a=="na"){const v=$("#na").value.trim();if(!v||find(v))return toast("Enter a new account ID");S.accounts.push([v,0,0,today()]);save();return render()}
   if(a=="gen"){const t=T[$("#gt").value],n=Math.min(50,+$("#gn").value||1),ac=$("#ga").value.trim().toUpperCase(),have=new Set(S.cards.map(c=>c[0]));
     if(t[2]=="account"){if(!ac||have.has(ac))return toast("Enter an unused account ID");S.cards.push([ac,t[0],t[1],today(),0,ac]);if(!find(ac))S.accounts.push([ac,0,0,today()])}
@@ -394,11 +391,11 @@ document.addEventListener("click",e=>{const el=e.target.closest("[data-a]");if(!
   if(a=="pr"){try{window.print()}catch(e){toast("Printing is blocked here")}return}
   if(k=="rm")return copy(msg(S.bills.find(b=>b[0]==x)));
   if(k=="st")return copy(stmt(x));
-  if(k=="ap"){let n=0;S.bills.filter(b=>!b[6]&&b[3].toUpperCase()==x.toUpperCase()).forEach(b=>{const ac=find(b[3]);if(ac&&!b[10]){b[10]=Math.floor(b[4]/5)*25;ac[1]+=b[10];TX(ac[0],"points_reward",b[10],0,"Bill "+b[0]+" paid")}b[6]=1;b[12]="cash";b[13]=today();n++});save();toast(n+" bills marked paid");modal=am(x);return render()}
+  if(k=="ap"){let n=0;S.bills.filter(b=>!b[6]&&b[3].toUpperCase()==x.toUpperCase()).forEach(b=>{const ac=find(b[3]);if(ac&&!b[10]){b[10]=Math.floor(b[4]/5)*25;ac[1]+=b[10];TX(ac[0],"points_reward",b[10],0,"Bill "+b[0]+" paid")}b[6]=1;b[12]="cash";b[13]=today();n++});save();toast(n+" bills marked paid");refreshAcct(x);return render()}
   if(k=="dp"){const b=S.bills.find(b=>b[0]==x),id=Array.from(crypto.getRandomValues(new Uint8Array(8)),r=>AL[r%32]).join("");S.bills.push([id,b[1]+" (copy)",today(),b[3],b[4],rnd(b[5]-(b[7]||0)),0,0,b[8],"",0,b[11]]);save();toast("Duplicated");modal=bm(id);return render()}
   if(k=="d"||k=="dc"||k=="da"){if(armed!=a){armed=a;return toast("Click again to confirm delete")}armed="";
-    if(k=="d"){const b=S.bills.find(b=>b[0]==x);if(b&&!b[6])undoDed(b);S.bills=S.bills.filter(b=>b[0]!=x)}if(k=="dc")S.cards=S.cards.filter(c=>c[0]!=x);if(k=="da")S.accounts=S.accounts.filter(c=>c[0]!=x);save();modal="";toast("Deleted");return render()}
-  if(k=="bp"){const v=+$("#bp").value,ac=find(x);if(!(v>=5)||ac[2]<v)return toast("Need at least €5 and enough balance");ac[2]=rnd(ac[2]-v);ac[1]+=Math.floor(v/5)*25;TX(ac[0],"purchase_points",Math.floor(v/5)*25,-v,"Purchase "+E(v)+" from balance");save();toast("Points bought");modal=am(x);return render()}
+    if(k=="d"){const b=S.bills.find(b=>b[0]==x);if(b&&!b[6])undoDed(b);S.bills=S.bills.filter(b=>b[0]!=x)}if(k=="dc")S.cards=S.cards.filter(c=>c[0]!=x);if(k=="da")S.accounts=S.accounts.filter(c=>c[0]!=x);save();modal="";closeDrawer();toast("Deleted");return render()}
+  if(k=="bp"){const v=+$("#bp").value,ac=find(x);if(!(v>=5)||ac[2]<v)return toast("Need at least €5 and enough balance");ac[2]=rnd(ac[2]-v);ac[1]+=Math.floor(v/5)*25;TX(ac[0],"purchase_points",Math.floor(v/5)*25,-v,"Purchase "+E(v)+" from balance");save();toast("Points bought");refreshAcct(x);return render()}
   if(a=="rd"){const sr=$("#rv").value.trim().toUpperCase(),c=S.cards.find(c=>c[0]==sr),t=c&&T[c[1]];if(!c)return toast("Serial not found");if(t[2]=="account")return toast("Account card for "+c[5]);if(t[4])return toast(t[1]+": unlimited uses");if(c[4])return toast("Already used");c[4]=1;TX(c[5]||"","voucher_redeemed",0,0,t[1]+" "+c[0]);save();toast(t[1]+" redeemed");return render()}
   if(a=="addp"){$("#gf").click();return}
   if(k=="rmp"){if(Q.plates){Q.plates.splice(+x,1);if(!Q.plates.length){Q.plates=null;Q.projectTotalPlates=0;Q.an=null;Q.info=null}calc();render()}return}
@@ -626,17 +623,27 @@ function decCard(row){for(const rev of[0,1]){const r=rev?[...row].reverse():row,
     for(let c=0;c<n&&ok;c++){const q=B.slice(6+9*c,15+9*c);let v=0,p=0;for(let i=0;i<7;i++){v=v*2+q[i];p+=q[i]}if(q[7]!=p%2||q[8]||v<32){ok=0;break}s+=String.fromCharCode(v)}
     if(ok&&s)return s}}return null}
 async function decCanvas(cv){if("BarcodeDetector"in window)try{const r=await new BarcodeDetector({formats:["code_39","code_128","qr_code"]}).detect(cv);if(r.length)return r[0].rawValue}catch(e){}
-  const g=cv.getContext("2d"),w=cv.width,h=cv.height;for(let f=.12;f<.9;f+=.04){const y=Math.floor(h*f),im=g.getImageData(0,y,w,1).data,L=new Array(w);for(let i=0;i<w;i++)L[i]=im[i*4]*.3+im[i*4+1]*.59+im[i*4+2]*.11;
+  const g=cv.getContext("2d",{willReadFrequently:true}),w=cv.width,h=cv.height;if(window.jsQR){try{const q=jsQR(g.getImageData(0,0,w,h).data,w,h,{inversionAttempts:"attemptBoth"});if(q&&q.data)return q.data}catch(e){}}for(let f=.12;f<.9;f+=.04){const y=Math.floor(h*f),im=g.getImageData(0,y,w,1).data,L=new Array(w);for(let i=0;i<w;i++)L[i]=im[i*4]*.3+im[i*4+1]*.59+im[i*4+2]*.11;
     for(const[x0,x1]of[[0,1],[.15,.85],[.3,.7]]){const r=decCard(L.slice(Math.floor(w*x0),Math.floor(w*x1)));if(r)return r}}return null}
 function stopCam(){clearInterval(camT);if(cam){cam.getTracks().forEach(t=>t.stop());cam=null}}
 function found(code){stopCam();const c=String(code).trim().toUpperCase();toast("Scanned "+c);
-  if(S.cards.find(x=>x[0]==c))modal=cm(c);else if(S.bills.find(x=>x[0]==c))modal=bm(c);else if(find(c))modal=am(find(c)[0]);else{toast("No match for "+c);return render()}render()}
-async function startCam(){try{cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});const v=$("#vd");v.srcObject=cam;v.style.display="block";await v.play();const cv=document.createElement("canvas");
-  camT=setInterval(async()=>{if(!v.videoWidth)return;cv.width=v.videoWidth;cv.height=v.videoHeight;cv.getContext("2d").drawImage(v,0,0);const r=await decCanvas(cv);if(r)found(r)},350)}catch(e){toast("Camera not available here. Use “Take photo” instead")}}
+  if(S.cards.find(x=>x[0]==c))modal=cm(c);else if(S.bills.find(x=>x[0]==c))modal=bm(c);else if(find(c))openDrawer(am(find(c)[0]),"","Account");else{toast("No match for "+c);return render()}render()}
+async function startCam(){const hint=m=>{const h=$("#scanHint");if(h)h.textContent=m;toast(m)};
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){return hint(window.isSecureContext?"This browser has no camera access. Use “Take photo” instead":"The camera only works on https:// pages (or localhost). Open the site over HTTPS, or use “Take photo”")}
+  stopCam();
+  try{try{cam=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false})}catch(e){if(e&&(e.name=="NotAllowedError"||e.name=="SecurityError"))throw e;cam=await navigator.mediaDevices.getUserMedia({video:true,audio:false})}
+   const v=$("#vd");if(!v){stopCam();return}v.setAttribute("playsinline","");v.muted=true;v.srcObject=cam;v.style.display="block";await v.play();const h=$("#scanHint");if(h)h.textContent="Point the camera at the barcode or QR code.";
+   const cv=document.createElement("canvas");let busy=0;
+   camT=setInterval(async()=>{if(!v.isConnected){stopCam();return}if(busy||!v.videoWidth)return;busy=1;try{cv.width=v.videoWidth;cv.height=v.videoHeight;cv.getContext("2d",{willReadFrequently:true}).drawImage(v,0,0);const r=await decCanvas(cv);if(r)found(r)}finally{busy=0}},300)
+  }catch(e){stopCam();const n=e&&e.name;hint(n=="NotAllowedError"||n=="SecurityError"?"Camera permission was blocked. Allow the camera for this site in the browser settings, then try again":n=="NotFoundError"||n=="OverconstrainedError"?"No camera found on this device. Use “Take photo” instead":n=="NotReadableError"?"The camera is in use by another app. Close it and try again":"Camera not available here. Use “Take photo” instead")}}
+async function startMobileCam(){const box=$("#scanResult");if(!box)return;
+  box.innerHTML=`<div class="scanview"><video id="vd" playsinline muted autoplay></video><div class="scanframe"></div></div><p class="mu" id="scanHint" style="margin:12px 0">Starting the camera…</p><div class="row"><button class="btn g" data-a="ce" style="flex:1">Stop</button><label class="btn g" style="flex:1;margin:0">Take photo<input id="sp" type="file" accept="image/*" capture="environment" hidden></label></div><div class="row" style="margin-top:12px;flex-wrap:nowrap"><input id="sm" class="mono" placeholder="…or type a serial / bill ID"><button class="btn" data-a="sl">Look up</button></div>`;
+  await startCam()}
+document.addEventListener("click",e=>{if(e.target.closest("#startScan"))startMobileCam()});
 function loadImg(f){const im=new Image();im.onload=async()=>{const k=Math.min(1,1800/im.width),cv=document.createElement("canvas");cv.width=im.width*k;cv.height=im.height*k;cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);const r=await decCanvas(cv);r?found(r):toast("No barcode found. Hold the card flat and fill the frame with it")};im.src=URL.createObjectURL(f)}
 const scan=()=>`<div class="card" style="max-width:560px"><h2>Scan a card or receipt</h2><p class="mu">Reads the raised barcode on your 3D-printed cards, plus Code 39 / Code 128 / QR codes where the browser supports them. A match opens the card, bill or account.</p>
 <div class="row"><button class="btn" data-a="cs">Start camera</button><label class="btn g">Take / choose photo<input id="sp" type="file" accept="image/*" capture="environment" hidden></label><button class="btn g" data-a="ce">Stop</button></div>
-<video id="vd" playsinline muted style="display:none;width:100%;border-radius:12px;margin-bottom:12px"></video><div class="row"><input id="sm" class="mono" placeholder="…or type a serial / bill ID"><button class="btn" data-a="sl">Look up</button></div></div>`;
+<p class="mu" id="scanHint" style="min-height:1.4em"></p><div class="scanview"><video id="vd" playsinline muted style="display:none"></video><div class="scanframe"></div></div><div class="row"><input id="sm" class="mono" placeholder="…or type a serial / bill ID"><button class="btn" data-a="sl">Look up</button></div></div>`;
 /* history */
 let hf={a:"",k:""};
 const KL={purchase_points:"Points bought",purchase_gift:"Credit",quote_created:"Quote",quote_confirmed:"Confirmed",redeem_points:"Points redeemed",topup:"Top-up",voucher_redeemed:"Voucher",bill_paid:"Bill paid",balance_paid:"Paid from balance",points_reward:"Points reward",job_status:"Job status"};

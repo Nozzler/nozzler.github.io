@@ -438,3 +438,66 @@ body.shop .empty svg{display:none}
 @media(max-width:639px){body.shop .hero-art{width:110px}body.shop .hero h2{font-size:clamp(2.75rem,13vw,4rem)}}
 
 @media(max-width:900px){body.shop .shopgrid{grid-template-columns:minmax(0,1fr)}body.shop .shopgrid .side{position:static}}
+
+/* ───────── Camera / scanner ───────── */
+.scanview{position:relative;border-radius:14px;overflow:hidden;background:#000;margin-bottom:4px;aspect-ratio:4/3;max-height:60vh}
+.scanview:has(video[style*="none"]){display:none}
+.scanview video{width:100%;height:100%;object-fit:cover;display:block}
+.scanframe{position:absolute;inset:14% 10%;border-radius:14px;pointer-events:none;box-shadow:0 0 0 999px rgba(0,0,0,.38);
+  background:
+   linear-gradient(var(--ac),var(--ac)) top left/26px 3px no-repeat,linear-gradient(var(--ac),var(--ac)) top left/3px 26px no-repeat,
+   linear-gradient(var(--ac),var(--ac)) top right/26px 3px no-repeat,linear-gradient(var(--ac),var(--ac)) top right/3px 26px no-repeat,
+   linear-gradient(var(--ac),var(--ac)) bottom left/26px 3px no-repeat,linear-gradient(var(--ac),var(--ac)) bottom left/3px 26px no-repeat,
+   linear-gradient(var(--ac),var(--ac)) bottom right/26px 3px no-repeat,linear-gradient(var(--ac),var(--ac)) bottom right/3px 26px no-repeat}
+.scanframe::after{content:"";position:absolute;left:6%;right:6%;top:50%;height:2px;border-radius:2px;background:var(--ac);box-shadow:0 0 14px var(--ac);animation:scanline 2.4s var(--smooth) infinite alternate}
+@keyframes scanline{from{transform:translateY(-70px)}to{transform:translateY(70px)}}
+
+/* ───────── Admin: dense data UI on the same system ───────── */
+body.admin main{padding:28px clamp(16px,3vw,40px) calc(48px + env(safe-area-inset-bottom,0px))}
+body.admin .card{background:var(--sf);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 0 0 .5px var(--bd),var(--sh)}
+body.admin .card h2,body.admin .pn h2,body.admin .drawer h2{font-size:1.0625rem;font-weight:650;letter-spacing:-.02em;margin:0 0 14px}
+body.admin .kpi{padding:18px 20px}
+body.admin .kpi small{display:block;font-family:var(--mono);font-size:.6875rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mu);margin-bottom:8px}
+body.admin .kpi b{display:block;font-size:clamp(1.5rem,2.2vw,2rem);font-weight:700;letter-spacing:-.035em;font-variant-numeric:tabular-nums;line-height:1.05}
+body.admin .grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+body.admin .two{gap:14px}
+body.admin label{font-family:var(--mono);font-size:.6875rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+body.admin .settings-row label,body.admin .tg{font-family:var(--font);text-transform:none;letter-spacing:-.011em;font-size:.9375rem;font-weight:450;color:var(--tx)}
+body.admin input,body.admin select,body.admin textarea{border-radius:10px;min-height:42px;font-size:.9375rem}
+body.admin .btn{min-height:42px;padding:9px 18px}
+body.admin .btn.s{min-height:32px;padding:5px 12px;border-radius:8px}
+body.admin .tag{font-family:var(--mono);font-size:.6875rem;text-transform:uppercase;letter-spacing:.05em;border-radius:6px;font-weight:500}
+body.admin .tw{overflow-x:auto;border-radius:12px;margin:0 -4px;padding:0 4px}
+body.admin table{font-size:.875rem}
+body.admin th{position:sticky;top:0;background:var(--sf);font-family:var(--mono);font-size:.6875rem;font-weight:500;letter-spacing:.07em;padding:10px 12px}
+body.admin td{padding:12px 12px}
+body.admin tbody tr{transition:background .12s}
+body.admin tr[data-a]:hover td{background:color-mix(in srgb,var(--ac) 7%,transparent)}
+body.admin tr[data-a]:active td{background:color-mix(in srgb,var(--ac) 12%,transparent)}
+body.admin .n,body.admin .mono{font-variant-numeric:tabular-nums}
+body.admin .mono{font-family:var(--mono);font-size:.8125rem}
+body.admin #per{max-width:240px;margin-bottom:16px}
+body.admin .bar{height:8px;border-radius:4px;background:var(--ac);min-width:2px;transition:width var(--t-smooth) var(--smooth)}
+body.admin h1{font-size:1.1875rem;letter-spacing:-.03em}
+body.admin .ov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.4);animation:fade .2s}
+body.admin .ov .pn{background:var(--sf);border-radius:24px;padding:26px;max-height:90vh;overflow:auto;animation:pop .45s var(--bounce)}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{opacity:0;transform:scale(.94) translateY(8px)}}
+/* side drawer: bills and accounts */
+.drawer{width:min(460px,100vw)}
+.drawer-header{padding:18px 22px}
+.drawer-header h2{font-family:var(--mono);font-size:.6875rem;text-transform:uppercase;letter-spacing:.08em;font-weight:500;color:var(--mu)}
+.drawer-body{padding:22px}
+.drawer-body>h2:first-child{font-size:1.5rem;letter-spacing:-.03em;margin-bottom:4px}
+.drawer-body .grid{grid-template-columns:1fr 1fr;margin:14px 0}
+.drawer-body .row{margin-bottom:12px}
+.drawer-body .big{font-size:2.25rem}
+@media(prefers-reduced-motion:reduce){.scanframe::after{animation:none}}
+@media print{body.admin .ov{position:static;background:none;padding:0;animation:none}body.admin .ov .pn{padding:0;animation:none}}
+.btn{white-space:nowrap}
+label.btn{font-family:var(--font)!important;text-transform:none!important;letter-spacing:-.011em!important;font-size:1rem!important;font-weight:600!important;color:var(--tx);margin:0}
+label.btn:not(.g){color:var(--on-ac)}
+.row>input,.row>select{width:auto;flex:1 1 130px;min-width:0}
+body.admin .drawer .drawer-header h2{font-family:var(--mono);font-size:.6875rem;text-transform:uppercase;letter-spacing:.08em;font-weight:500;color:var(--mu);margin:0}
+body.admin .drawer .drawer-body>h2:first-child{font-family:var(--font-display);font-size:1.75rem;letter-spacing:-.035em;font-weight:700;margin:0 0 4px}
+body.admin .drawer .drawer-body>h2:first-child .mono{font-size:.875rem;font-weight:500;letter-spacing:0}
