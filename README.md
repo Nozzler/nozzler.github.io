@@ -11,7 +11,12 @@ The site root opens the customer shop; the admin is at `/admin/` (small link in 
 | `admin/labels.js` | **Labels** tab: box labels and papers (see below) |
 | `shared/pricing.js` | Price rates, strength presets, STL/3MF parsing (used by both) |
 | `supabase/schema.sql` | Tables, Row Level Security, storage bucket |
-| `config.js` | Your Supabase URL + anon key |
+| `config.js` | Your Supabase URL + anon key (+ the public VAPID key for notifications) |
+| `sw.js` | Service worker (root): receives push messages, opens the right page on tap |
+| `shared/push.js`, `shared/mobile.css` | Notification switch (shop + admin) and the mobile layout pass |
+| `admin/manifest.webmanifest`, `shop/manifest.webmanifest` | Make both installable as phone apps |
+| `supabase/push.sql`, `supabase/functions/push-notify` | Subscription table + the function that sends the pushes |
+| `tools/patch_admin.py` | One-time patch for `admin/index.html` (mobile + push) |
 
 ## Setup
 1. Create a project at supabase.com. Run `supabase/schema.sql` in the SQL Editor.
@@ -86,3 +91,16 @@ Export: one PDF (copies repeated), **print sheets** (labels packed at real size 
 
 ## Design system (`shared/ui.css`)
 Built from Apple's fluid-interface principles. Colours, radii, springs (`--smooth`, `--snap`, `--bounce` as CSS `linear()` curves) and type are tokens at the top of `shared/ui.css`; change them there and both shop and admin follow. Press feedback fires on pointer-down, popovers grow from the button that opened them, the nav indicator and switches are spring-driven, and `prefers-reduced-motion`, `prefers-reduced-transparency` and `prefers-contrast` each get their own gentler path. The theme toggle is remembered (`p3dth`).
+
+
+## Phone notifications (Web Push)
+Admin gets a push for every **new request** and every **accepted quote**; customers get one when their quote is ready, the status changes (queue, printing, ready, delivered), the shop sends a message, or the final price changes.
+1. `npx web-push generate-vapid-keys`. Put the **public** key in `config.js` (`VAPID_PUBLIC_KEY`).
+2. Run `supabase/push.sql` in the SQL Editor.
+3. `supabase secrets set VAPID_PUBLIC=<public> VAPID_PRIVATE=<private> VAPID_SUBJECT=mailto:you@example.com PUSH_WEBHOOK_SECRET=<any long random string>` then `supabase functions deploy push-notify --no-verify-jwt`.
+4. Supabase > Database > Webhooks > create: table `requests`, events **Insert** and **Update**, type *Supabase Edge Functions* > `push-notify`, add HTTP header `x-webhook-secret` with the same secret.
+5. On the phone: **Android** open the site in Chrome. **iPhone (iOS 16.4+)**: Safari > Share > *Add to Home Screen*, then open it from the Home Screen (iOS only allows push for installed apps). Admin: Settings > *Notifications on this phone*. Customers: Account > Notifications.
+Who is an admin is read from `profiles.role` on the server. Dead subscriptions are removed automatically. Pushes need HTTPS (GitHub Pages is fine).
+
+## Mobile layout
+`shared/mobile.css` (loaded after `ui.css`): admin tables become cards under 640 px, the header fits one row with a sync status dot, 16 px inputs (no iOS zoom), sheets respect the safe area and hide the tab bar, and the shop keeps the price range and *Send request* in a bar above the tab bar. Admin bottom tabs: Queue, Requests, Scan, Deliver, More.

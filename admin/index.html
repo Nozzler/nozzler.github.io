@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="">
 <title>3D Print Desk</title>
-<link rel="stylesheet" href="../shared/ui.css">
+<link rel="stylesheet" href="../shared/ui.css"><link rel="stylesheet" href="../shared/mobile.css"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="../assets/apple-touch-icon.png"><meta name="theme-color" content="#c2410c"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Nozzler Desk">
 <script src="vendor/jsQR.js" defer></script>
 <script>try{var t=localStorage.getItem("p3dth");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
@@ -134,9 +134,9 @@ svg text{fill:var(--mu);font-size:11px}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M5 21H3a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="7" x2="17" y2="17"></line></svg>
     <span>Scan</span>
   </button>
-  <button data-a="t_Print" aria-label="Print">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-    <span>Print</span>
+  <button data-a="t_Requests" aria-label="Requests">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+    <span>Requests</span>
   </button>
   <button data-a="t_Deliver" aria-label="Deliver">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3"></path><circle cx="7" cy="17" r="2"></circle><circle cx="17" cy="17" r="2"></circle><path d="M5 17h14"></path></svg>
@@ -148,7 +148,7 @@ svg text{fill:var(--mu);font-size:11px}
   </button>
 </nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="../config.js"></script><script src="../shared/pricing.js"></script>
+<script src="../config.js"></script><script src="../shared/pricing.js"></script><script src="../shared/push.js"></script>
 <script>document.querySelector('meta[http-equiv="Content-Security-Policy"]').content=APP_CONFIG.CSP||""</script>
 <script>
 const SEED={"bills":[],"cards":[],"accounts":[],"tx":[],"types":[["one_free","1 Free 3D Print","voucher",100,0],["two_free","2 Free 3D Prints","voucher",100,0],["three_free","3 Free 3D Prints","voucher",100,0],["five_free","5 Free 3D Prints","voucher",100,0],["ten_free","10 Free 3D Prints","voucher",100,0],["discount_10","10% 3D Print Discount","voucher",10,0],["discount_20","20% 3D Print Discount","voucher",20,0],["friendship_discount","Friendship Discount (25% Forever)","voucher",25,1],["discount_30","30% 3D Print Discount","voucher",30,0],["discount_40","40% 3D Print Discount","voucher",40,0],["discount_50","50% 3D Print Discount","voucher",50,0],["discount_60","60% 3D Print Discount","voucher",60,0],["discount_70","70% 3D Print Discount","voucher",70,0],["discount_80","80% 3D Print Discount","voucher",80,0],["discount_90","90% 3D Print Discount","voucher",90,0],["account_card","Account Card","account",0,0]]};
@@ -164,7 +164,7 @@ const MAT=PRICING.MAT;
 const BK={material:"Material",machine_time:"Machine time",support_removal:"Support removal",color_changes:"Colour changes",model_fee:"Online model purchase",design_fee:"Custom design"};
 function toast(m){$("#ts").innerHTML=`<div class="toast">${m}</div>`;setTimeout(()=>$("#ts").innerHTML="",2200)}
 const copy=async t=>{try{await navigator.clipboard.writeText(t);toast("Copied")}catch(e){toast("Copy blocked: select the text manually")}};
-const tbl=(h,r,nc=[])=>`<div class="tw"><table><tr>${h.map((x,i)=>`<th class="${nc.includes(i)?"n":""}">${x}</th>`).join("")}</tr>${r.map(x=>`<tr ${x.a?`data-a="${x.a}"`:""}>${x.c.map((y,i)=>`<td class="${nc.includes(i)?"n":""}">${y}</td>`).join("")}</tr>`).join("")}</table></div>`;
+const tbl=(h,r,nc=[])=>`<div class="tw"><table><tr>${h.map((x,i)=>`<th class="${nc.includes(i)?"n":""}">${x}</th>`).join("")}</tr>${r.map(x=>`<tr ${x.a?`data-a="${x.a}"`:""}>${x.c.map((y,i)=>`<td data-l="${h[i]||""}" class="${nc.includes(i)?"n":""}">${y}</td>`).join("")}</tr>`).join("")}</table></div>`;
 const find=a=>S.accounts.find(x=>x[0].toUpperCase()==String(a).toUpperCase());
 const vch=()=>S.cards.filter(c=>T[c[1]]&&T[c[1]][2]=="voucher"&&(T[c[1]][4]||!c[4]));
 function calc(){if(Q.plates&&Q.plates.length){
@@ -269,6 +269,10 @@ function settings(){
       <div class="settings-row"><label>Show VAT breakdown on receipt</label><div class="control"><label class="lbchk"><input type="checkbox" data-c="vatShow" ${(cfg.vatShow||cfg.vat)>0?"checked":""}> Enabled</label></div></div>
     </div>
     <div class="settings-section">
+      <h3>Notifications on this phone</h3>
+      <div class="settings-row"><label id="pm" style="color:var(--mu)">…</label><div class="control"><button class="btn s" id="pn" type="button" style="display:none"></button></div></div>
+    </div>
+    <div class="settings-section">
       <h3>Data & sync</h3>
       <div class="settings-row"><label>Auto-sync to cloud</label><div class="control"><label class="lbchk"><input type="checkbox" id="autoSync" ${M().autoSync?"checked":""}> Enabled</label></div></div>
       <div class="settings-row"><label>Sync interval</label><div class="control"><select id="syncInterval"><option value="15" ${M().syncInterval==15?"selected":""}>15 seconds</option><option value="30" ${M().syncInterval==30?"selected":""}>30 seconds</option><option value="60" ${M().syncInterval==60?"selected":""}>60 seconds</option></select></div></div>
@@ -316,7 +320,7 @@ function queueViewMobile(){const act=S.bills.filter(isAct);return`<div class="ca
 function scanViewMobile(){return`<div class="card"><h2>Scan to Find Order</h2><p class="mu" style="margin-bottom:16px">Scan a bill QR code or barcode to open it instantly.</p><div class="row" style="justify-content:center"><button class="btn" id="startScan" style="width:100%"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M5 21H3a2 2 0 0 1-2-2v-2"></path><line x1="7" y1="7" x2="17" y2="17"></line></svg>Open Camera</button></div><div id="scanResult" style="margin-top:16px"></div></div>`}
 function printViewMobile(){const act=S.bills.filter(b=>QD(b).st=="printing");return`<div class="card"><h2>Now Printing</h2>${act.length?act.map(b=>{const o=QD(b);return`<div class="card" style="margin-bottom:10px;padding:14px"><b>${esc(b[1])}</b><p class="mu" style="margin:6px 0">${esc(b[3]||"–")} · ${dueTxt(b)}</p><div class="row"><button class="btn" data-a="ns:${b[0]}">Mark Ready</button><button class="btn g" data-a="mv:${b[0]}:u">↑</button><button class="btn g" data-a="mv:${b[0]}:d">↓</button></div></div>`}).join(""):`<p class="mu">Nothing printing right now</p>`}</div>`}
 function deliverViewMobile(){const act=S.bills.filter(b=>["deliver","ship"].includes(QD(b).dm)&&!b[6]);return`<div class="card"><h2>To Deliver / Ship</h2>${act.length?act.map(b=>{const o=QD(b);return`<div class="card" style="margin-bottom:10px;padding:14px"><b>${esc(b[1])}</b><p class="mu" style="margin:6px 0">${esc(b[3]||"–")} · ${whereTxt(b)} · ${dueTxt(b)}</p><div class="row"><button class="btn" data-a="ns:${b[0]}">${o.st=="ready"?"Mark Delivered":"Move to Ready"}</button></div></div>`}).join(""):`<p class="mu">Nothing to deliver</p>`}</div>`}
-function moreViewMobile(){return`<div class="card"><h2>More</h2><div class="row" style="flex-direction:column;gap:8px">${[["Dashboard","Dashboard"],["Bills","Bills"],["Labels","Labels"],["Requests","Requests"],["Customers","Customers"],["Colors","Colors"],["Cards","Cards"],["Accounts","Accounts"],["Quote","Quote"],["History","History"],["Settings","Settings"]].map(([t,a])=>`<button class="btn g" data-a="t_${a}" style="justify-content:flex-start">${t}</button>`).join("")}</div></div>`}
+function moreViewMobile(){return`<div class="card"><h2>More</h2><div class="row" style="flex-direction:column;gap:8px">${[["Dashboard","Dashboard"],["Print","Now printing"],["Bills","Bills"],["Labels","Labels"],["Requests","Requests"],["Customers","Customers"],["Colors","Colors"],["Cards","Cards"],["Accounts","Accounts"],["Quote","Quote"],["History","History"],["Settings","Settings"]].map(([t,a])=>`<button class="btn g" data-a="t_${a}" style="justify-content:flex-start">${t}</button>`).join("")}</div></div>`}
 async function render(){const isMobile=()=>window.innerWidth<640;
   const mobileViews={Queue:queueViewMobile,Scan:scanViewMobile,Print:printViewMobile,Deliver:deliverViewMobile,More:moreViewMobile};
   const viewFn=isMobile()&&mobileViews[tab]?mobileViews[tab]:{Dashboard:dash,Bills:bills,Queue:queueView,Labels:()=>typeof labelView=="function"?labelView():"",Requests:()=>typeof reqView=="function"?reqView():"",Customers:()=>typeof custView=="function"?custView():"",Colors:()=>typeof colView=="function"?colView():"",Cards:cards,Accounts:accts,Quote:quote,History:hist,Scan:scan,Settings:settings}[tab];
@@ -326,12 +330,11 @@ async function render(){const isMobile=()=>window.innerWidth<640;
   const i=$("#q");if(i)i.oninput=()=>{q=i.value;const p=i.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)};
   const f=$("#fl");if(f)f.onchange=()=>{fl=f.value;render()};const pe=$("#per");if(pe)pe.onchange=()=>{per=pe.value;render()};const sq=$("#so");if(sq)sq.onchange=()=>{so=sq.value;render()};
   const d=$("#dz");if(d){d.onclick=()=>$("#gf").click();$("#gf").onchange=e=>{const fs=[...e.target.files];e.target.value="";if(fs.length)loadGFiles(fs,!!(Q.plates&&Q.plates.length))};d.ondragover=e=>{e.preventDefault();d.classList.add("h")};d.ondragleave=()=>d.classList.remove("h");d.ondrop=e=>{e.preventDefault();d.classList.remove("h");if(e.dataTransfer.files&&e.dataTransfer.files.length)loadGFiles([...e.dataTransfer.files],!!(Q.plates&&Q.plates.length))}}
-  const j=$("#jf");if(j)j.onchange=async e=>{$("#tx").value=await e.target.files[0].text()}}
+  const j=$("#jf");if(j)j.onchange=async e=>{$("#tx").value=await e.target.files[0].text()}
   // Settings form handlers
   document.querySelectorAll(".settings-row [data-c]").forEach(el=>{el.onchange=()=>{const c=el.dataset.c;if(el.type=="checkbox")S.cfg[c]=el.checked;else if(el.type=="number")S.cfg[c]=+el.value;else S.cfg[c]=el.value;save();toast("Saved");render()}});
   const as=$("#autoSync");if(as)as.onchange=()=>{const m=M();m.autoSync=as.checked;save();toast("Saved")};
   const syncIntervalEl=$("#syncInterval");if(syncIntervalEl)syncIntervalEl.onchange=()=>{const m=M();m.syncInterval=+syncIntervalEl.value;save();toast("Saved")};
-const isMobile=()=>window.innerWidth<640;
 const navGroups=[
   ["Overview",[["Dashboard","M4 4h16v16H4V4zm0 2v12h16V6H4z"]]],
   ["Orders",[["Bills","M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"],["Queue","M3 3h18v18H3zM9 9h6v6H9z"],["Labels","M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM9 11h6v2H9zM9 15h6v2H9z"],["Requests","M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM12 11v7M12 11l-4 4M12 11l4 4"],["Customers","M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"]]],
@@ -350,6 +353,8 @@ $("#nav").innerHTML="";
 $("#locs").innerHTML=locOpts();
 $("#md").innerHTML=modal?`<div class="ov" data-a="x"><div class="pn">${modal}</div></div>`:"";
 $("#sidebarToggle").style.display=isMobile()?"flex":"none";
+  const pm=$("#pm");if(pm){if(window.Push&&window.sb)Push.ui(pm,$("#pn"),window.sb);else pm.textContent="Sign in to the cloud to turn on notifications."}
+}
 let drawerScrollY=0;
 function openDrawer(html,footerHtml="",title="Order details"){const dt=$("#drawerTitle");if(dt)dt.textContent=title;if(!$("#billDrawer").classList.contains("open"))drawerScrollY=window.scrollY;$("#drawerBody").innerHTML=html;$("#drawerFooter").innerHTML=footerHtml;$("#drawerOverlay").classList.add("visible");$("#billDrawer").classList.add("open");document.body.style.overflow="hidden"};
 function refreshAcct(id){const b=$("#drawerBody");if(b&&find(id)){const y=b.scrollTop;b.innerHTML=am(id);b.scrollTop=y}}
@@ -801,7 +806,7 @@ try{const t=localStorage.getItem("p3dth");if(t)document.documentElement.dataset.
   // Show global search on tabs that support it
   const searchTabs=new Set(["Bills","Queue","Requests","Customers","Cards","Accounts"]);
   const origRender=render;
-  render=function(){origRender();headerSearch.style.display=searchTabs.has(tab)?"block":"none"};
+  render=function(){const p=origRender();headerSearch.style.display=searchTabs.has(tab)?"block":"none";return p};
 })();
 
 window.__start=()=>{window.__started=1;render()};

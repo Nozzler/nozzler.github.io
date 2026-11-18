@@ -1,0 +1,7 @@
+Nozzler update: mobile layout + phone push notifications
+=========================================================
+1. Unzip over your repo (keeps the same folder layout). It replaces shop/index.html, admin/cloud.js, config.js and README.md;
+   fill in VAPID_PUBLIC_KEY in config.js afterwards (your Supabase URL and key are kept).
+2. python3 tools/patch_admin.py admin/index.html      (one time; makes admin/index.html.bak)
+3. Follow "Phone notifications (Web Push)" in README.md (keys, supabase/push.sql, secrets, deploy push-notify, database webhook).
+4. Commit and push to main; GitHub Pages deploys it.

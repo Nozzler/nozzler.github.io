@@ -2,9 +2,11 @@
 (()=>{const C=window.APP_CONFIG||{},on=C.SUPABASE_URL&&!/YOUR/.test(C.SUPABASE_URL)&&window.supabase,
 sb=on?supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{storageKey:"p3d-admin"}}):null;
 const M=()=>{try{return JSON.parse(localStorage.getItem("p3d_sync")||"{}")}catch(e){return{}}},setM=o=>localStorage.setItem("p3d_sync",JSON.stringify({...M(),...o}));
-let RF="",REQ=[],PRO={},timer=0,cloud=false;const STM={queued:"in_queue",printing:"printing",ready:"ready",delivered:"delivered"};
+window.sb=sb;let RF="",REQ=[],PRO={},timer=0,cloud=false;const STM={queued:"in_queue",printing:"printing",ready:"ready",delivered:"delivered"};
 const chip=document.createElement("button");chip.className="btn g s";chip.onclick=()=>cloud?(chip.dataset.s=="conflict"?resolve():sync()):0;
-const so=document.createElement("button");so.className="btn g s";so.textContent="Sign out";so.onclick=async()=>{if(M().dirty&&!confirm("There are changes not synced to the cloud yet. Sign out and discard them?"))return;await sb.auth.signOut();["p3d2","p3d_sync"].forEach(k=>localStorage.removeItem(k));location.reload()};
+const so=document.createElement("button");so.className="btn g s";so.textContent="Sign out";const doOut=async()=>{if(M().dirty&&!confirm("There are changes not synced to the cloud yet. Sign out and discard them?"))return;await sb.auth.signOut();["p3d2","p3d_sync"].forEach(k=>localStorage.removeItem(k));location.reload()};
+so.onclick=doOut;
+document.addEventListener("click",e=>{if(!cloud)return;if(e.target.closest("#signOutBtn"))doOut();else if(e.target.closest('[data-a="sync"]'))sync()});
 const setSt=s=>{chip.dataset.s=s;chip.textContent={synced:"✓ Synced",syncing:"Syncing…",dirty:"Unsynced changes",conflict:"⚠ Conflict: tap to resolve",err:"Sync error: tap to retry"}[s]||s};
 const gate=document.createElement("div");gate.style.cssText="position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:20px";
 gate.innerHTML=`<div class="card" style="width:min(380px,100%)"><h2>3D Print <span style="color:var(--ac)">Desk</span> admin</h2>${on?`<label>Email</label><input id="ge" type="email" autocomplete="email"><label style="margin-top:8px">Password</label><input id="gp" type="password" autocomplete="current-password"><p id="gm" class="wn"></p><div class="row"><button class="btn" id="gi">Sign in</button></div>`:`<p class="mu">Supabase is not configured yet. Fill in <b>config.js</b> to enable cloud sync and login.</p>`}${on?"":`<p><button class="btn g s" id="gl">Work offline (this device only)</button></p>`}</div>`;
@@ -12,7 +14,7 @@ document.body.append(gate);
 const err=t=>{const m=gate.querySelector("#gm");if(m)m.textContent=t};
 async function ok(){const{data:{session}}=await sb.auth.getSession();if(!session)return false;const{data:p}=await sb.from("profiles").select("role").eq("id",session.user.id).maybeSingle();
  if(!p||p.role!="admin"){await sb.auth.signOut();err("This account is not an admin.");return false}return true}
-async function enter(){gate.remove();cloud=true;const ha=document.querySelector(".header-actions");const ref=ha?.querySelector("[data-a=th]");if(ref)ha.insertBefore(chip,ref);else ha?.append(chip);ha?.append(so);
+async function enter(){gate.remove();cloud=true;const ha=document.querySelector(".header-actions");const ref=ha?.querySelector("[data-a=th]");if(ref)ha.insertBefore(chip,ref);else ha?.append(chip);
  await pull();window.onSaved=()=>{setM({dirty:true});setSt("dirty");clearTimeout(timer);timer=setTimeout(push,1500)};window.__start();loadReq();pubColors();setInterval(loadReq,15000)}
 const gl=gate.querySelector("#gl");if(gl)gl.onclick=()=>{gate.remove();window.__start()};
 if(on){gate.querySelector("#gi").onclick=async()=>{err("");const r=await sb.auth.signInWithPassword({email:gate.querySelector("#ge").value.trim(),password:gate.querySelector("#gp").value});
@@ -46,8 +48,12 @@ async function loadReq(){const[a,b]=await Promise.all([sb.from("requests").selec
   /* quotes the customer has accepted since the last check */
   const acc=new Set(REQ.filter(r=>r.status=="accepted").map(r=>r.id)),fresh=SEEN?[...acc].filter(i=>!SEEN.has(i)):[];SEEN=acc;
   if(fresh.length){const r=REQ.find(x=>x.id==fresh[0]);toast("✓ "+((PRO[r.user_id]||{}).name||"Customer")+" accepted “"+r.name+"”"+(fresh.length>1?" (+"+(fresh.length-1)+" more)":""))}
+  const nw=new Set(REQ.filter(r=>r.status=="new").map(r=>r.id)),fn=SEENN?[...nw].filter(i=>!SEENN.has(i)):[];SEENN=nw;
+  const note=(i,t)=>{const r=REQ.find(x=>x.id==i);window.addNotification&&addNotification({type:"info",title:t+": "+r.name,message:(PRO[r.user_id]||{}).name||""})};
+  fn.forEach(i=>note(i,"New request"));fresh.forEach(i=>note(i,"Quote accepted"));
+  if(fn.length&&!fresh.length)toast("New request: "+REQ.find(x=>x.id==fn[0]).name+(fn.length>1?" (+"+(fn.length-1)+")":""));
   if(["Requests","Bills","Queue","Dashboard"].includes(tab)&&!modal)render();if(window.labelsRefresh)labelsRefresh();mirror()}}
-let SEEN=null;window.reqAcc=b=>b[14]=="quote"&&!!b[17]&&REQ.some(r=>r.id==b[17]&&r.status=="accepted");
+let SEEN=null,SEENN=null;window.reqAcc=b=>b[14]=="quote"&&!!b[17]&&REQ.some(r=>r.id==b[17]&&r.status=="accepted");
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&cloud)loadReq()});
 window.reqView=()=>{const n=REQ.filter(r=>r.status=="new").length;if(!cloud)return`<div class="card mu">Sign in with Supabase to receive customer requests.</div>`;
  return`<div class="row"><span class="mu">${REQ.length} requests · ${n} new</span><select data-rf style="width:auto">${["","new","quoted","accepted","in_queue","printing","ready","delivered","declined","cancelled"].map(x=>`<option value="${x}" ${RF==x?"selected":""}>${x||"All statuses"}</option>`).join("")}</select><button class="btn g s" data-a="rqr">Refresh</button></div><div class="card">${REQ.length?tbl(["When","Customer","Request","Source","Estimate","Status"],REQ.filter(r=>!RF||r.status==RF).map(r=>({a:"rq:"+r.id,c:[r.created_at.slice(0,10),esc((PRO[r.user_id]||{}).name||"?"),esc(r.name),r.source,r.est_price!=null?E(r.est_price):"manual",`<span class="tag ${r.status=="new"||r.status=="accepted"?"pr-high":""}">${r.status}</span>`]})),[]):'<span class="mu">No requests yet</span>'}</div>`};

@@ -1,0 +1,57 @@
+/* Nozzler mobile pass. Loaded after ui.css by shop and admin. Tokens come from ui.css. */
+html{-webkit-tap-highlight-color:transparent}
+body{overflow-x:clip}
+.estbar{display:none}
+@media(max-width:639px){
+  /* 16px inputs stop iOS from zooming the page on focus; bigger touch targets */
+  input,select,textarea,body.admin input,body.admin select,body.admin textarea{font-size:16px}
+  .btn.s,body.admin .btn.s{min-height:40px;padding:6px 14px}
+  .stepper .btn{min-width:40px}
+
+  /* admin header: title + actions on one row, search on its own row, sync chip becomes a status dot */
+  body.admin header{gap:8px;padding:8px 12px}
+  body.admin header h1{margin:0;flex:1;min-width:0;font-size:1.0625rem}
+  body.admin .header-actions{gap:6px;flex-wrap:nowrap}
+  body.admin .header-search{order:9;flex:1 1 100%;max-width:none;min-width:0}
+  .header-actions>.btn[data-s]{font-size:0;width:36px;min-height:36px;padding:0;border-radius:50%}
+  .header-actions>.btn[data-s]::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--ok)}
+  .header-actions>.btn[data-s="syncing"]::before,.header-actions>.btn[data-s="dirty"]::before{background:var(--wn)}
+  .header-actions>.btn[data-s="conflict"]::before,.header-actions>.btn[data-s="err"]::before{background:var(--er)}
+
+  /* admin tables turn into cards (needs data-l on cells; tables without it keep scrolling sideways) */
+  body.admin .tw table:has(td[data-l]),body.admin .tw table:has(td[data-l]) tbody{display:block;width:100%}
+  body.admin .tw table:has(td[data-l]) tr:has(>th){display:none}
+  body.admin .tw table:has(td[data-l]) tr{display:block;padding:12px 14px;margin:0 0 10px;border-radius:14px;background:var(--bg);box-shadow:0 0 0 .5px var(--bd)}
+  body.admin .tw table:has(td[data-l]) td{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:4px 0;border:0;white-space:normal;text-align:right}
+  body.admin .tw table:has(td[data-l]) td:empty{display:none}
+  body.admin .tw table:has(td[data-l]) td::before{content:attr(data-l);flex:none;text-align:left;font:500 .6875rem var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--mu)}
+  body.admin .tw table:has(td[data-l]) td[data-l=""]::before{display:none}
+  body.admin .tw table:has(td[data-l]) td[data-l=""]{justify-content:flex-end;padding-top:8px}
+  body.admin tr[data-a]:active{background:color-mix(in srgb,var(--ac) 10%,var(--bg))}
+
+  body.admin .grid{grid-template-columns:1fr 1fr;gap:10px}
+  body.admin .two{grid-template-columns:1fr}
+  body.admin .f{grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}
+  body.admin .lbt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  body.admin .lbt button{flex:none}
+
+  /* sheets: taller, safe-area padding, and the tab bar steps aside while one is open */
+  .drawer{height:90vh;height:90dvh;max-height:90dvh}
+  .drawer-body{padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+  .drawer-footer{padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+  body:has(.drawer.open) .bottom-nav,body:has(#md .ov) .bottom-nav{display:none}
+  body.admin .ov{padding:12px}
+  body.admin .ov .pn{max-height:92dvh;padding:20px}
+
+  /* shop: price and Send stay in reach while filling in the form */
+  body.shop:has(.actions) main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}
+  body.shop .shopgrid .actions{position:fixed;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom,0px));z-index:35;max-width:420px;margin:0 auto;
+    grid-template-columns:1fr auto;align-items:center;gap:10px;padding:10px 10px 10px 18px;border-radius:22px;background:var(--glass);
+    -webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);box-shadow:var(--sh-pop)}
+  body.shop .actions .btn{width:auto;min-height:48px}
+  body.shop #clr{display:none}
+  .estbar{display:block;font-size:1.125rem;font-weight:680;letter-spacing:-.02em;line-height:1.15;font-variant-numeric:tabular-nums}
+  .estbar small{display:block;font:500 .625rem var(--mono);letter-spacing:.08em;color:var(--mu)}
+  body.shop .card,body.shop .obj{padding-bottom:22px}
+  footer{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+}

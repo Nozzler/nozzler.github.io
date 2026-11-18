@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Content-Security-Policy" content=""><title>Nozzler · 3D printing by Sepp</title><meta name="theme-color" content="#f5f4f1" media="(prefers-color-scheme: light)"><meta name="theme-color" content="#0e0d0b" media="(prefers-color-scheme: dark)"><link rel="icon" type="image/svg+xml" href="../assets/icon.svg">
 <script>try{var t=localStorage.getItem("p3dth");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="stylesheet" href="../shared/ui.css"></head><body class="shop">
+<link rel="stylesheet" href="../shared/ui.css"><link rel="stylesheet" href="../shared/mobile.css"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="../assets/apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Nozzler"></head><body class="shop">
 <header>
   <h1><a class="brand" href="./" aria-label="Nozzler home"><img src="../assets/icon.svg" alt=""><span>No<i>zz</i>ler</span><small>by Sepp</small></a></h1>
   <nav id="nav"></nav>
@@ -48,7 +48,7 @@
   </button>
 </nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="../config.js"></script><script src="../shared/pricing.js"></script>
+<script src="../config.js"></script><script src="../shared/pricing.js"></script><script src="../shared/push.js"></script>
 <script>document.querySelector('meta[http-equiv="Content-Security-Policy"]').content=APP_CONFIG.CSP||""</script>
 <script>
 const HERO=`<svg viewBox="0 0 320 350" aria-hidden="true"><rect class="bed" x="70" y="332" width="180" height="6" rx="3"/><rect class="layer" style="--i:0" x="109" y="319" width="102" height="9" rx="4.5" fill="#9a3412"/><rect class="layer" style="--i:1" x="106.5" y="308" width="107" height="9" rx="4.5" fill="#a03712"/><rect class="layer" style="--i:2" x="104" y="297" width="112" height="9" rx="4.5" fill="#a73a11"/><rect class="layer" style="--i:3" x="101.5" y="286" width="117" height="9" rx="4.5" fill="#ad3d11"/><rect class="layer" style="--i:4" x="99.5" y="275" width="121" height="9" rx="4.5" fill="#b44010"/><rect class="layer" style="--i:5" x="97.5" y="264" width="125" height="9" rx="4.5" fill="#ba4210"/><rect class="layer" style="--i:6" x="96" y="253" width="128" height="9" rx="4.5" fill="#c0450f"/><rect class="layer" style="--i:7" x="94.5" y="242" width="131" height="9" rx="4.5" fill="#c7480f"/><rect class="layer" style="--i:8" x="93.5" y="231" width="133" height="9" rx="4.5" fill="#cd4b0e"/><rect class="layer" style="--i:9" x="92.5" y="220" width="135" height="9" rx="4.5" fill="#d44e0e"/><rect class="layer" style="--i:10" x="92" y="209" width="136" height="9" rx="4.5" fill="#da510d"/><rect class="layer" style="--i:11" x="92" y="198" width="136" height="9" rx="4.5" fill="#e0540d"/><rect class="layer" style="--i:12" x="92.5" y="187" width="135" height="9" rx="4.5" fill="#e7570c"/><rect class="layer" style="--i:13" x="93.5" y="176" width="133" height="9" rx="4.5" fill="#eb5c10"/><rect class="layer" style="--i:14" x="94.5" y="165" width="131" height="9" rx="4.5" fill="#ec6418"/><rect class="layer" style="--i:15" x="96" y="154" width="128" height="9" rx="4.5" fill="#ee6c21"/><rect class="layer" style="--i:16" x="97.5" y="143" width="125" height="9" rx="4.5" fill="#ef7329"/><rect class="layer" style="--i:17" x="100" y="132" width="120" height="9" rx="4.5" fill="#f17b31"/><rect class="layer" style="--i:18" x="102.5" y="121" width="115" height="9" rx="4.5" fill="#f2833a"/><rect class="layer" style="--i:19" x="105.5" y="110" width="109" height="9" rx="4.5" fill="#f48b42"/><rect class="layer" style="--i:20" x="108.5" y="99" width="103" height="9" rx="4.5" fill="#f5934a"/><rect class="layer" style="--i:21" x="112" y="88" width="96" height="9" rx="4.5" fill="#f79b53"/><rect class="layer" style="--i:22" x="115.5" y="77" width="89" height="9" rx="4.5" fill="#f8a25b"/><rect class="layer" style="--i:23" x="119.5" y="66" width="81" height="9" rx="4.5" fill="#faaa63"/><rect class="layer" style="--i:24" x="123.5" y="55" width="73" height="9" rx="4.5" fill="#fbb26c"/><rect class="layer" style="--i:25" x="128" y="44" width="64" height="9" rx="4.5" fill="#fdba74"/><g class="noz"><rect class="nozzle-body" x="140" y="-2" width="40" height="18" rx="5"/><path class="nozzle-body" d="M146 16h28l-9 21h-10z"/><rect x="157" y="37" width="6" height="5" rx="1.5" fill="#c2410c"/></g></svg>`;
@@ -106,7 +106,8 @@ async function autoLink(it){if(!sb)return;it.af="loading";it.why="";it.s=null;it
   if(d instanceof Blob){const buf=await d.arrayBuffer(),z=new Uint8Array(buf,0,2),zip=z[0]==0x50&&z[1]==0x4b;it.s=zip?await P.threemf(buf):P.stl(buf);it.blob=d;it.ext=zip?".3mf":".stl";it.af="file"}
   else{it.pr=(d&&d.profiles)||[];it.pi=0;if(d&&d.title)it.name=d.title.slice(0,80);it.why=(d&&d.error)||"";const p=it.pr[0];if(p&&p.w){it.w=p.w;it.t=Math.round(p.t||0)||"";it.af="ok"}else it.af="none"}}
  catch(e){it.af="none";it.why=String(e&&e.message||e)}render()}
-function refresh(){const e=$("#est");if(e)e.innerHTML=estHtml();items.forEach((it,i)=>{const s=$("#ip"+i),x=itemEst(it);if(s)s.textContent=x?"priced in the estimate":"quoted by hand"})}
+const estBar=()=>{const c=calc();return`<small>ESTIMATE</small>${c?"≈ "+rng(c.total):"Add a model"}`};
+function refresh(){const e=$("#est");if(e)e.innerHTML=estHtml();const eb=$("#estbar");if(eb)eb.innerHTML=estBar();items.forEach((it,i)=>{const s=$("#ip"+i),x=itemEst(it);if(s)s.textContent=x?"priced in the estimate":"quoted by hand"})}
 const inp=(k,l,t="text",x="")=>`<div><label>${l}</label><input data-f="${k}" type="${t}" value="${esc(F[k])}" ${x}></div>`,
 sel=(k,l,m)=>`<div><label>${l}</label><select data-f="${k}">${Object.entries(m).map(([v,t])=>`<option value="${v}" ${F[k]==v?"selected":""}>${esc(t)}</option>`).join("")}</select></div>`,
 ii=(i,k,l,t="text",x="")=>`<div><label>${l}</label><input data-i="${i}:${k}" type="${t}" value="${esc(items[i][k])}" ${x}></div>`,
@@ -131,7 +132,7 @@ return`${items.length?"":`<section class="hero"><div><h2>Send a model.<br>Get a 
  <label class="tg"><input type="checkbox" data-f="buy" ${F.buy?"checked":""}>Some models are paid: buy them for me (price is added to the quote)</label></div>
 <div class="card"><h2>When &amp; where</h2><div class="f">${sel("dm","How",{pickup:"I pick it up",deliver:"Deliver to me",ship:"Ship it"})}${inp("dl","Where (address or place)")}${inp("due","When do you want it? (date)","date",'min="'+new Date().toISOString().slice(0,10)+'"')}${inp("tm","Time (optional)","time")}</div>
  <label class="tg"><input type="checkbox" data-f="rush" ${F.rush?"checked":""}>Rush order (priority handling, extra charge)</label><div style="padding-top:14px"><label>Notes</label><textarea data-f="notes" rows="2">${esc(F.notes)}</textarea></div></div>
-</div><aside class="side">${vSav()}<div class="card" id="est">${estHtml()}</div><div class="actions"><button class="btn" id="go" ${busy?"disabled":""}>${busy?"Sending…":"Send request"}</button><button class="btn g" id="clr">Clear</button></div></aside></div>`}
+</div><aside class="side">${vSav()}<div class="card" id="est">${estHtml()}</div><div class="actions"><div class="estbar" id="estbar">${estBar()}</div><button class="btn" id="go" ${busy?"disabled":""}>${busy?"Sending…":"Send request"}</button><button class="btn g" id="clr">Clear</button></div></aside></div>`}
 async function addFiles(list){for(const file of list){const it={...dflt(),kind:"file",name:file.name,file};items.push(it);try{const n=file.name.toLowerCase();if(n.endsWith(".stl"))it.s=P.stl(await file.arrayBuffer());else if(n.endsWith(".3mf"))it.s=await P.threemf(await file.arrayBuffer());else if(n.endsWith(".gcode"))it.s=P.gcode(file.size>6e5?(await file.slice(0,3e5).text())+(await file.slice(-3e5).text()):await file.text());else if(n.endsWith(".obj"))it.s=P.obj(await file.text())}catch(e){it.err=1}}render()}
 async function send(){if(!sb)return say("The shop is not connected yet (config.js).",1);if(!user){pend=true;view="auth";say("Log in or sign up and your request is sent automatically.");return render()}
  if(!items.length&&!(F.design&&F.desc.trim()))return say("Add a file or link first, or describe the design you need.",1);
@@ -149,8 +150,9 @@ const vOrders=()=>!user?`<div class="empty"><b>Log in to follow your orders</b>Q
  <p class="mu" style="margin:4px 0">${new Date(o.created_at).toLocaleDateString()} · ${o.quoted_price!=null?(["accepted","in_queue","printing","ready","delivered"].includes(o.status)?"Final price ":"Quote ")+E(o.quoted_price)+(o.paid?" · paid":""):x.total!=null?"Estimate ≈ "+E(x.total):"Price after review"}${o.due?" · wanted by "+o.due+((o.options||{}).tm?" "+o.options.tm:""):""}${o.delivery_where?" · "+esc(o.delivery_method)+": "+esc(o.delivery_where):""}</p>
  ${((o.options||{}).items||[]).length?`<p class="mu" style="margin:4px 0">${o.options.items.map(i=>esc(i.name)+" ×"+i.qty+" "+i.m).join(" · ")}</p>`:""}${cur>=0?`<div class="track">${STEPS.map((s,i)=>`<span class="${i<cur?"ok":i==cur?"ok now":""}">${ST[s]}</span>`).join("")}</div>`:""}${useTxt(o)}${o.admin_note?`<p class="wn">Message from the shop: ${esc(o.admin_note)}</p>`:""}
  <div class="row">${o.status=="quoted"?`<button class="btn s" data-q="${o.id}:1">Accept quote</button><button class="btn g s" data-q="${o.id}:0">Decline</button>`:""}${["new","quoted"].includes(o.status)?`<button class="btn g s" data-c="${o.id}">Cancel request</button>`:""}<button class="btn g s" data-again="${o.id}">Order again</button></div></div>`}).join(""):`<div class="empty"><b>No orders yet</b>When you send a request it shows up here, with its status.<br><button class="btn" data-t="new">Get a price</button></div>`;
+const pushCard=()=>window.Push&&Push.supported()?`<div class="card"><h2>Notifications</h2><p class="mu" id="pm">…</p><div class="row"><button class="btn s" id="pn" type="button" style="display:none"></button></div></div>`:"";
 const vAcct=()=>!user?vAuth():`<div class="card"><h2>Account</h2><div class="kv"><span>Name</span><span>${esc(user.user_metadata?.name||"")}</span></div><div class="kv"><span>Email</span><span>${esc(user.email)}</span></div><div class="f"><div><label>Phone (shared with the shop when you accept a quote)</label><input id="pp" type="tel" value="${esc(prof?.phone)}"></div><div><label>Address</label><input id="pa" value="${esc(prof?.address)}"></div></div><div class="row"><button class="btn s" id="ps">Save details</button></div><p class="mu">You stay logged in on this device until you log out.</p><button class="btn g" id="lo">Log out</button></div>
- ${walCard()}`;
+ ${walCard()}${pushCard()}`;
 const vAuth=()=>`<div class="card auth"><img class="badge-icon" src="../assets/icon.svg" alt=""><h2>${auth.up?"Create your account":"Welcome back"}</h2>${auth.up?`<label>Name</label><input id="an" autocomplete="name"><label style="margin-top:8px">Phone</label><input id="aph" type="tel" autocomplete="tel">`:""}<label style="margin-top:8px">Email</label><input id="ae" type="email" autocomplete="email"><label style="margin-top:8px">Password</label><input id="ap" type="password" autocomplete="${auth.up?"new-password":"current-password"}" minlength="6">
  <div class="row" style="margin-top:12px"><button class="btn" id="ao">${auth.up?"Sign up":"Log in"}</button><button class="btn g" id="at">${auth.up?"I have an account":"New here? Sign up"}</button></div></div>`;
 function render(){$("#nav").innerHTML=[["new","Get a price"],["orders","My orders"],["acct","Account"]].map(t=>`<button class="${t[0]==view||(view=="auth"&&t[0]=="acct")?"on":""}" data-t="${t[0]}">${t[1]}</button>`).join("");const lg=$("#lg");if(lg)lg.textContent=user?"Log out":"Log in";
@@ -182,7 +184,7 @@ function render(){$("#nav").innerHTML=[["new","Get a price"],["orders","My order
  const vx=$("#vx");if(vx)vx.onclick=()=>{F.vd=null;F.vc="";render()};
  const g=$("#go");if(g)g.onclick=send;const c=$("#clr");if(c)c.onclick=()=>{items=[];Object.assign(F,{name:"",links:"",desc:"",w:"",t:"",buy:false,notes:""});say("");render()};
  const ps=$("#ps");if(ps)ps.onclick=async()=>{const r=await sb.from("profiles").update({phone:$("#pp").value.trim(),address:$("#pa").value.trim()}).eq("id",user.id);if(r.error)return say(r.error.message,1);await loadProf();say("Saved")};
- const lo=$("#lo");if(lo)lo.onclick=out;const at=$("#at");if(at)at.onclick=()=>{auth.up=!auth.up;render()};
+ const lo=$("#lo");if(lo)lo.onclick=out;const pm=$("#pm");if(pm&&window.Push&&sb)Push.ui(pm,$("#pn"),sb);const at=$("#at");if(at)at.onclick=()=>{auth.up=!auth.up;render()};
  const ao=$("#ao");if(ao)ao.onclick=async()=>{if(!sb)return;const e=$("#ae").value.trim(),p=$("#ap").value;say("");
   const r=auth.up?await sb.auth.signUp({email:e,password:p,options:{data:{name:($("#an").value||"").trim(),phone:($("#aph").value||"").trim()}}}):await sb.auth.signInWithPassword({email:e,password:p});
   if(r.error)return say(r.error.message,1);if(auth.up&&!r.data.session)await sb.auth.signInWithPassword({email:e,password:p})}};
@@ -191,74 +193,6 @@ const lg=$("#lg");if(lg)lg.onclick=()=>user?out():(view="auth",render());
 if(sb){sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;if(user){if(view=="auth")view=pend?"new":"orders";load();if(pend){pend=false;send()}}render()});
  sb.auth.getSession().then(({data})=>{user=data.session?data.session.user:null;if(user)load();render()});setInterval(()=>{if(view=="orders"&&!document.hidden)load()},20000)}
 if(sb)sb.from("public_settings").select("value").eq("key","colors").maybeSingle().then(r=>{if(r.data){AV=r.data.value;render()}});
-  const themeBtn=$("[data-a=th]"),sun=themeBtn?.querySelector(".icon-sun"),moon=themeBtn?.querySelector(".icon-moon");
-  function updateThemeIcons(){const dark=document.documentElement.dataset.theme==="dark"||(!document.documentElement.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);if(sun&&moon){sun.style.display=dark?"block":"none";moon.style.display=dark?"none":"block"}}
-  if(themeBtn){themeBtn.onclick=()=>{const r=document.documentElement,cur=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");r.dataset.theme=cur=="dark"?"light":"dark";try{localStorage.setItem("p3dth",r.dataset.theme)}catch(e){}updateThemeIcons()}}
-  updateThemeIcons();matchMedia("(prefers-color-scheme: dark)").addEventListener("change",updateThemeIcons);
-
-  const userMenu=$("#userMenu"),userBtn=$("#userMenu .user-menu-btn"),userDropdown=$("#userDropdown"),userMenuContent=$("#userMenuContent");
-  function updateUserMenu(){
-    if(user){
-      const name=user.user_metadata?.name||user.email?.split("@")[0]||"Customer";
-      const initial=name.charAt(0).toUpperCase();
-      $("#userAvatar").textContent=initial;
-      $("#userName").textContent=name;
-      userMenuContent.innerHTML=`<a href="#acct" data-t="acct"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Account</a><a href="#orders" data-t="orders"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> My orders</a><div class="divider"></div><div class="kv"><span>Credit</span><b>${E((wal||{}).credit||0)}</b></div><div class="kv"><span>Points</span><b>${(wal||{}).points||0} pts</b></div><div class="divider"></div><button class="danger" id="signOutShop">Sign out</button>`;
-      const sos=$("#signOutShop");if(sos)sos.onclick=out;
-      document.querySelectorAll("#userMenuContent [data-t]").forEach(b=>b.onclick=()=>{view=b.dataset.t;say("");render();userMenu.classList.remove("open");if(view=="orders")load()});
-    }else{
-      $("#userAvatar").textContent="?";
-      $("#userName").textContent="Sign in";
-      userMenuContent.innerHTML=`<a href="#acct" data-t="acct"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Sign in / Sign up</a>`;
-      document.querySelectorAll("#userMenuContent [data-t]").forEach(b=>b.onclick=()=>{view=b.dataset.t;say("");render();userMenu.classList.remove("open")});
-    }
-  }
-  if(userBtn&&userDropdown){
-    userBtn.onclick=e=>{e.stopPropagation();userMenu.classList.toggle("open");updateUserMenu()};
-    document.addEventListener("click",()=>userMenu.classList.remove("open"));
-    userDropdown.onclick=e=>e.stopPropagation();
-  }
-
-  const notif=$("#notifications"),notifBtn=$("#notifications .notifications-btn"),notifDropdown=$("#notifDropdown"),notifList=$("#notifList"),notifBadge=$("#notifBadge"),markAllRead=$("#markAllRead");
-  let notifications=[];
-  function addNotif(n){notifications.unshift({...n,id:Date.now()+Math.random(),read:false,time:new Date()});saveNotifs();renderNotifs();updateNotifVisibility()}
-  function saveNotifs(){try{localStorage.setItem("p3d_shop_notifs",JSON.stringify(notifications.slice(0,100)))}catch(e){}}
-  function loadNotifs(){try{const s=localStorage.getItem("p3d_shop_notifs");if(s)notifications=JSON.parse(s)}catch(e){}}
-  function renderNotifs(){
-    if(!notifList)return;
-    const unread=notifications.filter(n=>!n.read).length;
-    if(notifBadge){notifBadge.textContent=unread;notifBadge.style.display=unread?"flex":"none"}
-    notifList.innerHTML=notifications.length?notifications.slice(0,20).map(n=>`<div class="item ${n.read?"":"unread"}" data-id="${n.id}"><div class="icon" style="background:${n.type==="error"?"var(--er)":n.type==="success"?"var(--ok)":n.type==="warning"?"var(--wn)":"var(--ac)"}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${n.type==="error"?'<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>':n.type==="success"?'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>':n.type==="warning"?'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>':'<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>'}</svg></div><div class="content"><div class="title">${esc(n.title)}</div><div class="meta">${n.message||""} · ${new Date(n.time).toLocaleTimeString()}</div></div></div>`).join(""):`<div class="empty">No notifications</div>`;
-  }
-  function markRead(id){const n=notifications.find(x=>x.id===id);if(n){n.read=true;saveNotifs();renderNotifs()}}
-  function markAll(){notifications.forEach(n=>n.read=true);saveNotifs();renderNotifs()}
-  function updateNotifVisibility(){notif.style.display=user?"flex":"none"}
-  if(notifBtn){notifBtn.onclick=e=>{e.stopPropagation();notif.classList.toggle("open");renderNotifs()}}
-  if(markAllRead){markAllRead.onclick=e=>{e.stopPropagation();markAll()}}
-  if(notifList){notifList.onclick=e=>{const item=e.target.closest(".item");if(item)markRead(+item.dataset.id)}}
-  document.addEventListener("click",()=>notif?.classList.remove("open"));
-  if(notifDropdown){notifDropdown.onclick=e=>e.stopPropagation()}
-  loadNotifs();renderNotifs();updateNotifVisibility();
-  window.addShopNotification=addNotif;
-
-  let lastOrderStatuses={};
-  function checkOrderUpdates(){
-    if(!user||!orders.length)return;
-    orders.forEach(o=>{
-      const key=o.id,prev=lastOrderStatuses[key],curr=o.status;
-      if(prev&&prev!==curr){
-        const titles={quoted:"Quote ready",accepted:"Quote accepted",in_queue:"In print queue",printing:"Now printing",ready:"Ready for pickup",delivered:"Delivered",declined:"Declined",cancelled:"Cancelled"};
-        addNotif({type:["ready","delivered"].includes(curr)?"success":["declined","cancelled"].includes(curr)?"error":"info",title:"Order update: "+o.name,message:"Status changed to "+(titles[curr]||curr)});
-      }
-      lastOrderStatuses[key]=curr;
-    });
-  }
-  const origLoad=load;
-  load=async()=>{await origLoad();checkOrderUpdates()};
-  setInterval(()=>{if(view=="orders"&&!document.hidden)load()},20000);
-
-  if(sb){sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;updateUserMenu();updateNotifVisibility()})}
-
 function initHeader(){const themeBtn=$("[data-a=th]"),sun=themeBtn?.querySelector(".icon-sun"),moon=themeBtn?.querySelector(".icon-moon");
 function updateThemeIcons(){const dark=document.documentElement.dataset.theme==="dark"||(!document.documentElement.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);if(sun&&moon){sun.style.display=dark?"block":"none";moon.style.display=dark?"none":"block"}}
 if(themeBtn){themeBtn.onclick=()=>{const r=document.documentElement,cur=r.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");r.dataset.theme=cur=="dark"?"light":"dark";try{localStorage.setItem("p3dth",r.dataset.theme)}catch(e){}updateThemeIcons()}}
@@ -326,6 +260,7 @@ setInterval(()=>{if(view=="orders"&&!document.hidden)load()},20000);
 
 if(sb){sb.auth.onAuthStateChange((ev,s)=>{user=s?s.user:null;updateUserMenu();updateNotifVisibility()})}
 }
+if(/^#(orders|acct)$/.test(location.hash))view=location.hash.slice(1);
 render();initHeader();
 /* motion layer: sprung nav indicator, view cascade, scroll-edge hairline */
 (()=>{const base=render,reduce=matchMedia("(prefers-reduced-motion: reduce)");let lastView=null,lastX=null,lastW=null,t;
